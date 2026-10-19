@@ -1,4 +1,4 @@
-package com.monprojet.backend.controller;
+package com.mrtovo.backend.controller;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
