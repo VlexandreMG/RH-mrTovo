@@ -1,0 +1,42 @@
+# ==========================================
+# Common / General
+# ==========================================
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ==========================================
+# Backend (Spring Boot / Java / Maven)
+# ==========================================
+backend/target/
+backend/*.jar
+backend/*.war
+backend/*.ear
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.factorypath
+
+# ==========================================
+# Frontend (Vue.js / Node / Vite)
+# ==========================================
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.env.local
+frontend/.env.*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Config local ou variables sensibles
+.env
