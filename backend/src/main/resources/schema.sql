@@ -5,9 +5,9 @@ SET search_path TO mrtovo;
 
 CREATE TABLE candidat (
     id SERIALIZE PRIMARY KEY,
-    nom VARHCHAR(255),
-    prenom VARHCHAR(255),
-    email VARHCHAR(255),
+    nom VARHCHAR(255) NOT NULL,
+    prenom VARHCHAR(255) NOT NULL,
+    email VARHCHAR(255) NOT NULL UNIQUE,
     telephone VARCHAR(50),
     fichierCVUrl VARCHAR(250)
 );
