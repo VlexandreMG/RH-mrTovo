@@ -12,6 +12,14 @@ CREATE TABLE Candidat (
     fichierCVUrl VARCHAR(250)
 );
 
+CREATE TABLE Candidature (
+    id SERIALIZE PRIMARY KEY,
+    candidat_id NUMBER FOREIGN KEY,
+    offreEmploi_id NUMBER FOREIGN KEY,
+    dateCandidature DATE NOT NULL,
+    statut ENUM
+);
+
 CREATE TABLE OffreEmploi (
     id SERIALIZE PRIMARY KEY,
     titre VARCHAR(255) NOT NULL,
@@ -19,3 +27,4 @@ CREATE TABLE OffreEmploi (
     datePublication DATE NOT NULL,
     statut ENUM 
 );
+
