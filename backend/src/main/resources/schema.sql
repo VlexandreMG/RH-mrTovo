@@ -28,3 +28,16 @@ CREATE TABLE OffreEmploi (
     statut ENUM 
 );
 
+CREATE TABLE Evaluation (
+    id SERIALIZE PRIMARY KEY,
+    candidatue_id NUMBER FOREIGN KEY,
+    noteTest NUMBER,
+    statut ENUM
+);
+
+CREATE TABLE Entretien (
+    id SERIALIZE PRIMARY KEY,
+    evaluation_id NUMBER FOREIGN KEY,
+    dateEntretien DATE NOT NULL,
+    statut ENUM 
+);
