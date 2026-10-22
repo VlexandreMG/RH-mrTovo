@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 // 1. Importation de tes composants
-import OffreList from '@/components/offre/OffreList.vue';
 import KanbanBoard from '@/components/kanban/KanbanBoard.vue';
 
 // 2. Définition des routes
@@ -9,11 +8,6 @@ const routes = [
   {
     path: '/',
     redirect: '/offres' // Redirige automatiquement l'accueil vers la liste des offres
-  },
-  {
-    path: '/offres',
-    name: 'offres',
-    component: OffreList
   },
   {
     path: '/offres/:id/kanban', // Route dynamique avec l'ID de l'offre (:id)
