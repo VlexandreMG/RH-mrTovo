@@ -14,7 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 @Entity
-@Table(name = "achat")
+@Table(name = "Contrat")
 public class Contrat{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
