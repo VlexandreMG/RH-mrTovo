@@ -1,63 +1,70 @@
 CREATE SCHEMA IF NOT EXISTS mrtovo;
-
--- Tonga dia tadiavina ilay schéma 
 SET search_path TO mrtovo;
 
-CREATE TABLE Candidat (
-    id SERIALIZE PRIMARY KEY,
-    nom VARHCHAR(255) NOT NULL,
-    prenom VARHCHAR(255) NOT NULL,
-    email VARHCHAR(255) NOT NULL UNIQUE,
+-- ==========================================
+-- 1. TABLES DE STATUTS (Créées en premier)
+-- ==========================================
+CREATE TABLE statut_candidature (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE statut_offre_emploi (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE statut_evaluation (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE statut_entretien (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
+
+-- ==========================================
+-- 2. TABLES PRINCIPALES (Mères)
+-- ==========================================
+CREATE TABLE candidat (
+    id SERIAL PRIMARY KEY,
+    nom VARCHAR(255) NOT NULL,
+    prenom VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
     telephone VARCHAR(50),
-    fichierCVUrl VARCHAR(250)
+    fichier_cv_url VARCHAR(250)
 );
 
-CREATE TABLE Candidature (
-    id SERIALIZE PRIMARY KEY,
-    candidat_id NUMBER FOREIGN KEY,
-    offreEmploi_id NUMBER FOREIGN KEY,
-    dateCandidature DATE NOT NULL,
-    statut ENUM
-);
-
-CREATE TABLE OffreEmploi (
-    id SERIALIZE PRIMARY KEY,
+CREATE TABLE offre_emploi (
+    id SERIAL PRIMARY KEY,
     titre VARCHAR(255) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    datePublication DATE NOT NULL,
-    statut ENUM 
+    description TEXT NOT NULL,
+    date_publication DATE NOT NULL,
+    statut_offre_emploi_id INT REFERENCES statut_offre_emploi(id)  
 );
 
-CREATE TABLE Evaluation (
-    id SERIALIZE PRIMARY KEY,
-    candidatue_id NUMBER FOREIGN KEY,
-    noteTest NUMBER,
-    statut ENUM
-);
-
-CREATE TABLE Entretien (
-    id SERIALIZE PRIMARY KEY,
-    evaluation_id NUMBER FOREIGN KEY,
-    dateEntretien DATE NOT NULL,
-    statut ENUM 
-);
-
-CREATE TABLE StatutCandidature (
+-- ==========================================
+-- 3. TABLES Dépendantes (Enfants)
+-- ==========================================
+CREATE TABLE candidature (
     id SERIAL PRIMARY KEY,
-    libelle VARCHAR(255) NOT NULL
+    candidat_id INT REFERENCES candidat(id) ON DELETE CASCADE,
+    offre_emploi_id INT REFERENCES offre_emploi(id) ON DELETE CASCADE,
+    date_candidature DATE NOT NULL,
+    statut_candidature_id INT REFERENCES statut_candidature(id)
 );
 
-CREATE TABLE StatutOffreEmploi (
+CREATE TABLE evaluation (
     id SERIAL PRIMARY KEY,
-    libelle VARCHAR(255) NOT NULL
+    candidature_id INT REFERENCES candidature(id) ON DELETE CASCADE,
+    note_test INT,
+    statut_evaluation_id INT REFERENCES statut_evaluation(id)
 );
 
-CREATE TABLE StatutEvaluation (
+CREATE TABLE entretien (
     id SERIAL PRIMARY KEY,
-    libelle VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE StatutEntretien (
-    id SERIAL PRIMARY KEY,
-    libelle VARCHAR(255) NOT NULL
+    evaluation_id INT REFERENCES evaluation(id) ON DELETE CASCADE,
+    date_entretien DATE NOT NULL,
+    statut_entretien_id INT REFERENCES statut_entretien(id) 
 );
