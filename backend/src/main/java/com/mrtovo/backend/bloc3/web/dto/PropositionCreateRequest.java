@@ -24,6 +24,6 @@ public record PropositionCreateRequest(
         LocalDate dateFinContrat,
         TypeContrat typeContrat,
         Integer periodeEssaiMois,
-        @Valid List<AvantageRequest> avantages,
+        List<@Valid AvantageRequest> avantages,
         String motif) {
 }

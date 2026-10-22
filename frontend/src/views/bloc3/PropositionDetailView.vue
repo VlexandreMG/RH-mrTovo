@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api/client'
 import ModalDialog from '@/components/bloc3/ModalDialog.vue'
@@ -14,6 +14,8 @@ const erreur = ref(null)
 const message = ref(null)
 const modal = ref(null)
 const acteur = ref('RH')
+const maintenant = ref(Date.now())
+let horloge = null
 
 const formulaireValidation = reactive({ commentaire: '', derogation: false, motifDerogation: '' })
 const formulaireRevendication = reactive({
@@ -29,13 +31,28 @@ const formatDate = (valeur) => (valeur ? new Date(valeur).toLocaleDateString('fr
 
 const formatDateTime = (valeur) => (valeur ? new Date(valeur).toLocaleString('fr-FR') : '—')
 
-onMounted(charger)
+onMounted(() => {
+  charger()
+  horloge = window.setInterval(() => {
+    maintenant.value = Date.now()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (horloge) window.clearInterval(horloge)
+})
 
 async function charger() {
   chargement.value = true
   erreur.value = null
   try {
-    proposition.value = await api.proposition(route.params.id)
+    const donnees = await api.proposition(route.params.id)
+    proposition.value = {
+      ...donnees,
+      avantages: Array.isArray(donnees.avantages) ? donnees.avantages : [],
+      negotiations: Array.isArray(donnees.negotiations) ? donnees.negotiations : [],
+      historique: Array.isArray(donnees.historique) ? donnees.historique : [],
+    }
   } catch (exception) {
     erreur.value = exception.message
   } finally {
@@ -44,6 +61,37 @@ async function charger() {
 }
 
 const statut = computed(() => proposition.value?.statut)
+
+const retourCandidat = computed(() => {
+  if (statut.value !== 'EMISE' || !proposition.value?.dateLimiteValidite) return null
+
+  const [annee, mois, jour] = proposition.value.dateLimiteValidite.split('-').map(Number)
+  const echeance = new Date(annee, mois - 1, jour, 23, 59, 59, 999)
+  const millisecondesRestantes = echeance.getTime() - maintenant.value
+
+  if (millisecondesRestantes <= 0) {
+    return { expire: true, libelle: 'Le délai de réponse du candidat est dépassé.' }
+  }
+
+  const secondes = Math.floor(millisecondesRestantes / 1000)
+  const jours = Math.floor(secondes / 86400)
+  const heures = Math.floor((secondes % 86400) / 3600)
+  const minutes = Math.floor((secondes % 3600) / 60)
+  const secondesAffichees = secondes % 60
+  const duree = [
+    jours ? `${jours} j` : '',
+    heures ? `${heures} h` : '',
+    minutes ? `${minutes} min` : '',
+    `${secondesAffichees} s`,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return {
+    expire: false,
+    libelle: `Il reste ${duree} au candidat pour répondre aux RH.`,
+  }
+})
 
 const actionsPossibles = computed(() => {
   switch (statut.value) {
@@ -171,6 +219,12 @@ async function soumettreRevendication() {
 
     <div v-if="erreur" class="b3-alert is-error">{{ erreur }}</div>
     <div v-if="message" class="b3-alert is-success">{{ message }}</div>
+    <div v-if="retourCandidat" class="b3-alert" :class="retourCandidat.expire ? 'is-error' : 'is-info'">
+      {{ retourCandidat.libelle }}
+      <span v-if="proposition?.dateLimiteValidite">
+        (échéance : {{ formatDate(proposition.dateLimiteValidite) }})
+      </span>
+    </div>
 
     <div v-if="chargement" class="b3-card b3-empty">Chargement…</div>
 
