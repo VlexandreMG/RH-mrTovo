@@ -25,6 +25,8 @@ onMounted (() => {
 </script>
 
 <template>
+    <h2>Suivi des candidatures - Offre #{{ offreId }}</h2>
+    <button>Retour aux offres</button>
 </template>
 
 <style scoped>
