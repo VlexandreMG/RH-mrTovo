@@ -17,9 +17,9 @@ const erreur = ref('')
 async function chargerListes(){
     try {
         const[typeContratResponse, statutResponse, employeResponse]= await Promise.all([
-            fetch('http://localhost:8081/api/typeContrat'),
-            fetch('http://localhost:8081/api/statutContrat'),
-            fetch('http://localhost:8081/api/employee')
+            fetch('http://localhost:8080/api/typeContrat'),
+            fetch('http://localhost:8080/api/statutContrat'),
+            fetch('http://localhost:8080/api/employee')
         ]);
         if(!typeContratResponse.ok || !statutResponse.ok || !employeResponse.ok) {
             throw new Error('Erreur lors du chargement des listes');
@@ -48,7 +48,7 @@ async function creerContrat(){
 
     }
     try {
-        const reponse = await fetch('http://localhost:8081/api/contrat',{
+        const reponse = await fetch('http://localhost:8080/api/contrat',{
             method: 'POST',
             headers : {'Content-Type':'application/json'},
             body: JSON.stringify(contrat)
