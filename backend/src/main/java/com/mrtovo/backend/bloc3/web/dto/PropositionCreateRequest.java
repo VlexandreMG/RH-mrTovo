@@ -1,6 +1,7 @@
 package com.mrtovo.backend.bloc3.web.dto;
 
 import com.mrtovo.backend.bloc3.domain.TypeContrat;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,6 +24,6 @@ public record PropositionCreateRequest(
         LocalDate dateFinContrat,
         TypeContrat typeContrat,
         Integer periodeEssaiMois,
-        List<AvantageRequest> avantages,
+        @Valid List<AvantageRequest> avantages,
         String motif) {
 }

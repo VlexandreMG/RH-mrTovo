@@ -15,6 +15,7 @@ import com.mrtovo.backend.bloc3.web.dto.ActionRequest;
 import com.mrtovo.backend.bloc3.web.dto.DecisionNegociationRequest;
 import com.mrtovo.backend.bloc3.web.dto.GrilleDto;
 import com.mrtovo.backend.bloc3.web.dto.NegociationDto;
+import com.mrtovo.backend.bloc3.web.dto.PropositionDto;
 import com.mrtovo.backend.bloc3.web.dto.RevendicationRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,7 +56,7 @@ public class NegociationService {
     }
 
     public NegociationDto deposerRevendication(Long propositionId, RevendicationRequest request) {
-        PropositionOffre proposition = propositionService.charger(propositionId);
+        PropositionOffre proposition = propositionService.chargerPourMaj(propositionId);
         if (proposition.getStatut() != StatutProposition.EMISE) {
             throw ApiException.conflit("PROPOSITION_NON_EMISE",
                     "Seule une proposition EMISE peut faire l'objet d'une revendication (statut actuel : "
@@ -86,6 +87,19 @@ public class NegociationService {
         return mapper.toNegociationDto(negociation);
     }
 
+    public PropositionDto annulerProposition(Long propositionId, ActionRequest request) {
+        PropositionOffre proposition = propositionService.chargerPourMaj(propositionId);
+        String auteur = request.acteurOuDefaut(Acteur.RH);
+        for (Negociation ouverte : negociationsOuvertes(proposition)) {
+            transitionner(ouverte, StatutNegociation.REFUSE, "CLOTURE_ANNULATION", auteur,
+                    "Proposition annulee");
+            ouverte.setDecidePar(auteur);
+            ouverte.setDateDecision(LocalDate.now());
+            negociationRepository.save(ouverte);
+        }
+        return propositionService.annuler(propositionId, request);
+    }
+
     public NegociationDto analyser(Long id, ActionRequest request) {
         Negociation negociation = charger(id);
         transitionner(negociation, StatutNegociation.EN_ANALYSE, "ANALYSE",
@@ -96,7 +110,7 @@ public class NegociationService {
     public NegociationDto decider(Long id, DecisionNegociationRequest request) {
         Negociation negociation = charger(id);
         String decision = normaliserDecision(request.decision());
-        PropositionOffre proposition = negociation.getProposition();
+        PropositionOffre proposition = propositionService.chargerPourMaj(negociation.getProposition().getId());
         String auteur = request.acteurOuDefaut(Acteur.RH);
 
         if (decision.equals("REFUSE")) {
@@ -118,17 +132,19 @@ public class NegociationService {
                 ? request.salaireAccorde()
                 : negociation.getSalaireRevendique();
         if (salaireAccorde == null) {
-            throw ApiException.badRequest("SALAIRE_MANQUANT",
-                    "Le salaire accorde est obligatoire pour accepter la revendication");
+            // Revendication portant uniquement sur un avantage : le salaire courant est conserve
+            salaireAccorde = proposition.getSalaireBase();
         }
-        controlerGrille(proposition, salaireAccorde, request.derogationAccordee());
+        controlerGrille(proposition, salaireAccorde, request.derogationAccordee(), request.motifDerogation());
 
         String motif = (request.commentaire() == null ? "" : request.commentaire())
                 + (decision.equals("CONTRE_PROPOSITION") ? " | Contre-proposition de l'entreprise" : " | Revendication acceptee");
+        // Ordre important : l'ancienne version doit etre SUPERSEDEE (et flushee) avant l'insertion de la
+        // nouvelle, pour respecter l'index unique "une seule proposition active par candidature".
+        propositionService.transitionner(proposition, StatutProposition.SUPERSEDEE, "REMPLACEE_PAR_VERSION",
+                auteur, "Remplacee suite a la negociation : " + motif);
         PropositionOffre revision = propositionService.creerVersionRevisee(proposition, salaireAccorde,
                 request.avantages(), motif, auteur);
-        propositionService.transitionner(proposition, StatutProposition.SUPERSEDEE, "REMPLACEE_PAR_VERSION",
-                auteur, "Version " + revision.getVersion() + " generee : " + motif);
 
         transitionner(negociation,
                 decision.equals("CONTRE_PROPOSITION") ? StatutNegociation.CONTRE_PROPOSITION : StatutNegociation.ACCEPTE,
@@ -147,13 +163,21 @@ public class NegociationService {
         negociationRepository.save(negociation);
     }
 
-    private void controlerGrille(PropositionOffre proposition, BigDecimal salaireAccorde, boolean derogation) {
+    private void controlerGrille(PropositionOffre proposition, BigDecimal salaireAccorde, boolean derogation,
+                                 String motifDerogation) {
         Long posteId = proposition.getPoste() != null ? proposition.getPoste().getId() : null;
         if (!grilleSalarialeService.postePossedeUneGrille(posteId)) {
             return;
         }
         GrilleDto grille = grilleSalarialeService.niveauPourSalaire(posteId, salaireAccorde, LocalDate.now());
-        if (grille != null || derogation) {
+        if (grille != null) {
+            return;
+        }
+        if (derogation) {
+            if (motifDerogation == null || motifDerogation.isBlank()) {
+                throw ApiException.badRequest("MOTIF_DEROGATION_MANQUANT",
+                        "Le motif de la derogation est obligatoire");
+            }
             return;
         }
         StringBuilder message = new StringBuilder("SALAIRE_HORS_GRILLE : le salaire ")

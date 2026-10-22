@@ -57,12 +57,12 @@ const actionsPossibles = computed(() => {
         { code: 'emettre', label: 'Émettre au candidat', style: 'is-primary' },
         { code: 'annuler', label: 'Annuler', style: 'is-danger' },
       ]
-    case 'EMISE':
-      return [
-        { code: 'accepter', label: 'Le candidat accepte', style: 'is-success' },
-        { code: 'revoquer', label: 'Le candidat révocque', style: '' },
-        { code: 'refuser', label: 'Le candidat refuse', style: 'is-danger' },
-      ]
+      case 'EMISE':
+        return [
+          { code: 'accepter', label: 'Le candidat accepte', style: 'is-success' },
+          { code: 'revoquer', label: 'Le candidat revendique', style: '' },
+          { code: 'refuser', label: 'Le candidat refuse', style: 'is-danger' },
+        ]
     case 'EN_NEGOCIATION':
       return [{ code: 'annuler', label: 'Annuler', style: 'is-danger' }]
     case 'REVISE':

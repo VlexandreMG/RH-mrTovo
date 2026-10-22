@@ -77,7 +77,7 @@ public class PropositionController {
     @PostMapping("/{id}/annuler")
     public PropositionDto annuler(@PathVariable Long id, @RequestBody(required = false) ActionRequest request) {
         ActionRequest requete = request != null ? request : new ActionRequest(null, null);
-        return propositionService.annuler(id, requete);
+        return negociationService.annulerProposition(id, requete);
     }
 
     @PostMapping("/{id}/revoquer")

@@ -9,6 +9,7 @@ import com.mrtovo.backend.bloc3.domain.HistoriqueProposition;
 import com.mrtovo.backend.bloc3.domain.Poste;
 import com.mrtovo.backend.bloc3.domain.PropositionOffre;
 import com.mrtovo.backend.bloc3.domain.StatutCandidature;
+import com.mrtovo.backend.bloc3.domain.StatutPoste;
 import com.mrtovo.backend.bloc3.domain.StatutProposition;
 import com.mrtovo.backend.bloc3.domain.TypeAvantage;
 import com.mrtovo.backend.bloc3.domain.TypeContrat;
@@ -111,6 +112,9 @@ public class PropositionService {
 
         Poste poste = posteRepository.findById(request.posteId())
                 .orElseThrow(() -> ApiException.notFound("Poste introuvable : " + request.posteId()));
+        if (poste.getStatut() != StatutPoste.ACTIF) {
+            throw ApiException.conflit("POSTE_INACTIF", "Le poste " + poste.getId() + " est inactif");
+        }
         Departement departement = request.departementId() != null
                 ? departementRepository.findById(request.departementId())
                         .orElseThrow(() -> ApiException.notFound("Departement introuvable : " + request.departementId()))
@@ -155,8 +159,9 @@ public class PropositionService {
     }
 
     public PropositionDto valider(Long id, ValidationRequest request) {
-        PropositionOffre proposition = charger(id);
-        boolean horsGrille = controlerGrilleSalariale(proposition, request.derogationAccordee());
+        PropositionOffre proposition = chargerPourMaj(id);
+        boolean horsGrille = controlerGrilleSalariale(proposition, request.derogationAccordee(),
+                request.motifDerogation());
         String commentaire = request.commentaire();
         if (horsGrille) {
             commentaire = (commentaire == null ? "" : commentaire + " | ")
@@ -171,7 +176,7 @@ public class PropositionService {
     }
 
     public PropositionDto emettre(Long id, EmissionRequest request) {
-        PropositionOffre proposition = charger(id);
+        PropositionOffre proposition = chargerPourMaj(id);
         if (request.dateLimiteValidite() != null) {
             proposition.setDateLimiteValidite(request.dateLimiteValidite());
         }
@@ -188,7 +193,7 @@ public class PropositionService {
     }
 
     public PropositionDto accepter(Long id, AcceptionRequest request) {
-        PropositionOffre proposition = charger(id);
+        PropositionOffre proposition = chargerPourMaj(id);
         if (proposition.getDateLimiteValidite() != null
                 && proposition.getDateLimiteValidite().isBefore(LocalDate.now())) {
             throw ApiException.conflit("OFFRE_EXPIREE",
@@ -204,7 +209,7 @@ public class PropositionService {
     }
 
     public PropositionDto refuser(Long id, ActionRequest request) {
-        PropositionOffre proposition = charger(id);
+        PropositionOffre proposition = chargerPourMaj(id);
         transitionner(proposition, StatutProposition.REFUSEE, "REFUS_CANDIDAT",
                 Acteur.CANDIDAT.name(), request.commentaire());
         propositionRepository.save(proposition);
@@ -213,10 +218,11 @@ public class PropositionService {
     }
 
     public PropositionDto annuler(Long id, ActionRequest request) {
-        PropositionOffre proposition = charger(id);
+        PropositionOffre proposition = chargerPourMaj(id);
         transitionner(proposition, StatutProposition.ANNULEE, "ANNULATION",
                 request.acteurOuDefaut(Acteur.RH), request.commentaire());
         propositionRepository.save(proposition);
+        changerStatutCandidature(proposition.getCandidature(), StatutCandidature.RETENU);
         return mapper.toPropositionDto(proposition);
     }
 
@@ -231,7 +237,8 @@ public class PropositionService {
         revision.setEmploiDuTemps(source.getEmploiDuTemps());
         revision.setLieuTravail(source.getLieuTravail());
         revision.setDatePrisePoste(source.getDatePrisePoste());
-        revision.setDateLimiteValidite(source.getDateLimiteValidite());
+        // Nouvelle fenetre de validite : l'echeance de l'offre initiale n'est pas heritee
+        revision.setDateLimiteValidite(LocalDate.now().plusDays(properties.getDureeValiditeJours()));
         revision.setDateEmission(LocalDate.now());
         revision.setDateFinContrat(source.getDateFinContrat());
         revision.setTypeContrat(source.getTypeContrat());
@@ -263,8 +270,14 @@ public class PropositionService {
                             + actuel.transitionsAutorisees() + ")");
         }
         proposition.setStatut(cible);
-        propositionRepository.save(proposition);
+        propositionRepository.saveAndFlush(proposition);
         historiser(proposition, actuel, cible, action, auteur, commentaire);
+    }
+
+    /** Charge la proposition avec verrou : a utiliser pour toute operation qui change son etat. */
+    public PropositionOffre chargerPourMaj(Long id) {
+        return propositionRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> ApiException.notFound("Proposition introuvable : " + id));
     }
 
     public void changerStatutCandidature(Candidature candidature, StatutCandidature statut) {
@@ -293,7 +306,8 @@ public class PropositionService {
         }
     }
 
-    private boolean controlerGrilleSalariale(PropositionOffre proposition, boolean derogation) {
+    private boolean controlerGrilleSalariale(PropositionOffre proposition, boolean derogation,
+                                             String motifDerogation) {
         Long posteId = proposition.getPoste() != null ? proposition.getPoste().getId() : null;
         if (!grilleSalarialeService.postePossedeUneGrille(posteId)) {
             return false;
@@ -304,6 +318,10 @@ public class PropositionService {
             return false;
         }
         if (derogation) {
+            if (motifDerogation == null || motifDerogation.isBlank()) {
+                throw ApiException.badRequest("MOTIF_DEROGATION_MANQUANT",
+                        "Le motif de la derogation est obligatoire");
+            }
             return true;
         }
         StringBuilder message = new StringBuilder("SALAIRE_HORS_GRILLE : le salaire ")

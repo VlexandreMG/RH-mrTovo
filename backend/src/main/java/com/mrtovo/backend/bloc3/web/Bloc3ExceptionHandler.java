@@ -4,7 +4,11 @@ import com.mrtovo.backend.bloc3.exception.ApiException;
 import com.mrtovo.backend.bloc3.web.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,11 +46,26 @@ public class Bloc3ExceptionHandler {
                         "ARGUMENT_INVALIDE", exception.getMessage(), List.of()));
     }
 
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleCorpsInvalide(Exception exception) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
+                        "REQUETE_INVALIDE", "Requete illisible ou valeur de type/enum invalide", List.of()));
+    }
+
+    @ExceptionHandler({DataIntegrityViolationException.class, ObjectOptimisticLockingFailureException.class})
+    public ResponseEntity<ErrorResponse> handleConflitDonnees(Exception exception) {
+        log.warn("Conflit de donnees Bloc 3", exception);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(),
+                        "CONFLIT_DONNEES", "L'operation entre en conflit avec l'etat actuel des donnees", List.of()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception exception) {
         log.error("Erreur inattendue sur le module Bloc 3", exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(LocalDateTime.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                        "ERREUR_INTERNE", exception.getMessage(), List.of()));
+                        "ERREUR_INTERNE", "Erreur interne", List.of()));
     }
 }

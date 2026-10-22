@@ -86,7 +86,10 @@ async function soumettreDecision() {
       avantages: formulaire.avantages,
     })
     modalOuvert.value = false
-    message.value = 'Décision enregistrée : une nouvelle version de la proposition a été créée.'
+    message.value =
+      formulaire.decision === 'REFUSE'
+        ? 'Revendication refusée.'
+        : 'Décision enregistrée : une nouvelle version de la proposition a été créée.'
     await store.chargerNegotiations()
   } catch (exception) {
     erreur.value = exception.message
@@ -225,11 +228,13 @@ async function soumettreDecision() {
       <div class="b3-form-grid">
         <div class="b3-field">
           <label for="decision">Décision</label>
-          <select id="decision" v-model="formulaire.decision">
-            <option value="ACCEPTE">Accepter la revendication</option>
-            <option value="CONTRE_PROPOSITION">Contre-proposition</option>
-            <option value="REFUSE">Refuser</option>
-          </select>
+            <select id="decision" v-model="formulaire.decision">
+              <option value="ACCEPTE">Accepter la revendication</option>
+              <option value="CONTRE_PROPOSITION" :disabled="negociationCourante?.statut === 'EN_ATTENTE'">
+                Contre-proposition (après analyse RH)
+              </option>
+              <option value="REFUSE">Refuser</option>
+            </select>
         </div>
 
         <div class="b3-field">

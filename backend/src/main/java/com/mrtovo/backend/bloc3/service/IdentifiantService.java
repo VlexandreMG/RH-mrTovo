@@ -4,7 +4,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Year;
-import java.util.UUID;
 
 @Service
 public class IdentifiantService {
@@ -24,11 +23,10 @@ public class IdentifiantService {
     }
 
     private String suffixeSequence(String sequence, String prefixe) {
-        try {
-            Long valeur = jdbcTemplate.queryForObject("select nextval('" + sequence + "')", Long.class);
-            return String.format("%04d", valeur == null ? 0 : valeur);
-        } catch (RuntimeException exception) {
-            return prefixe + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        Long valeur = jdbcTemplate.queryForObject("select nextval('" + sequence + "')", Long.class);
+        if (valeur == null) {
+            throw new IllegalStateException("Sequence " + sequence + " indisponible");
         }
+        return String.format("%04d", valeur);
     }
 }
