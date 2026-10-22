@@ -1,0 +1,38 @@
+# Projet Mr Tovo - Gestion RH
+
+## Contexte
+- **Deadline** : Vendredi soir
+- **Type** : Groupe aléatoire
+- **Stack** : Java 21 + Spring Boot | VueJS | PostgreSQL (Docker)
+- **Repo Git** : En cours de création par Tsiory
+
+## Architecture
+- Backend REST API Java 21
+- Frontend VueJS 
+- Base de données PostgreSQL sous Docker
+- Convention : Nom de classe = Nom de table en Majuscule (ex: `CONTRAT`, `JeuCard`)
+
+## Répartition des blocs
+- **Bloc 1** : Gilbertine
+- **Bloc 2** : Tsiory
+- **Bloc 3** : Sarobidy  
+- **Bloc 4** : Aina + Tsiky → *Contrat*
+
+## Tâches Bloc 4 - Contrat
+### Backend (Spring Boot)
+- Entité `Contrat` : id, dateDebut, dateFin, typeContrat(CDI/CDD/stage), salaire, statut, refEmploye
+- CRUD complet `/api/contrats`
+- Validation : pas de chevauchement de dates par employé
+- Génération PDF contrat via workflow
+
+### Frontend (VueJS)
+- Formulaire création/modification contrat
+- Liste avec filtres employé + statut
+- Vue détail + export PDF
+
+## Process Git
+- 1 branche par bloc : `bloc1`, `bloc2`, `bloc3`, `bloc4`
+- Push quotidien → merge le lendemain → nouveau sprint → suppression ancienne branche
+
+## Rôle Aina
+Collecte chaque jour l’avancement des 3 autres blocs et centralise le rapport dans le groupe.

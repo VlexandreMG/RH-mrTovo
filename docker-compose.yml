@@ -1,0 +1,74 @@
+services:
+  # ==========================================
+  # Base de données PostgreSQL
+  # ==========================================
+  db:
+    image: postgres:16-alpine
+    container_name: rh_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rh_db}
+      POSTGRES_USER: ${POSTGRES_USER:-christelle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Postgres2016!}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/sql/22_10_26_01_table.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-christelle} -d ${POSTGRES_DB:-rh_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rh-network
+
+  # ==========================================
+  # Backend Spring Boot (Compilation + Run)
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rh_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-rh_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-christelle}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-Postgres2016!}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - rh-network
+
+  # ==========================================
+  # Frontend Vue.js 3 (Compilation + Nginx)
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8080/api
+    container_name: rh_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+      - "80:80"
+    networks:
+      - rh-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  rh-network:
+    driver: bridge
