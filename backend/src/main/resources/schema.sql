@@ -41,3 +41,13 @@ CREATE TABLE Entretien (
     dateEntretien DATE NOT NULL,
     statut ENUM 
 );
+
+CREATE TABLE StatutCandidature (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE StatutOffreEmploi (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
