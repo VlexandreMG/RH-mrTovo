@@ -8,7 +8,7 @@ const listCandidatures = ref([]);
 const fetchCandidatures = async () => {
     try {
         const response = await axios.get('http://localhost:8080/api/candidatures/offre/${offreId}');
-        listCandidatures.value = response.value;    
+        listCandidatures.value = response.data;    
     } catch (error) {
         console.error("Erreur lors du chargement des candidatures",error);
     }
