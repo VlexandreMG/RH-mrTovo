@@ -51,3 +51,13 @@ CREATE TABLE StatutOffreEmploi (
     id SERIAL PRIMARY KEY,
     libelle VARCHAR(255) NOT NULL
 );
+
+CREATE TABLE StatutEvaluation (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE StatutEntretien (
+    id SERIAL PRIMARY KEY,
+    libelle VARCHAR(255) NOT NULL
+);
