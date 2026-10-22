@@ -1,4 +1,4 @@
-package com.mrtovo.backend.controllers;
+package com.mrtovo.backend.controllers.typeContrat;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mrtovo.backend.entity.TypeContrat.TypeContrat;
-import com.mrtovo.backend.service.TypeContratService;
+import com.mrtovo.backend.service.typeContrat.TypeContratService;
 
 @RestController
 @RequestMapping("/api/typeContrat")
@@ -33,9 +33,7 @@ public class TypeContratControllers {
     @GetMapping("/{id}")
     public ResponseEntity<TypeContrat> getById(@PathVariable Long id) {
         TypeContrat typeContrat = typeContratService.getById(id);
-        return typeContrat == null
-                ? ResponseEntity.notFound().build()
-                : ResponseEntity.ok(typeContrat);
+        return typeContrat == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(typeContrat);
     }
 
     @PostMapping
@@ -44,8 +42,7 @@ public class TypeContratControllers {
             return ResponseEntity.badRequest().build();
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(typeContratService.save(typeContrat));
+        return ResponseEntity.status(HttpStatus.CREATED).body(typeContratService.save(typeContrat));
     }
 
     @PutMapping("/{id}")

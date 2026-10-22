@@ -1,4 +1,4 @@
-package com.mrtovo.backend.controllers;
+package com.mrtovo.backend.controllers.statutContrat;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mrtovo.backend.StatutContrat.StatutContrat;
-import com.mrtovo.backend.service.StatutContratService;
+import com.mrtovo.backend.service.statutContrat.StatutContratService;
 
 @RestController
 @RequestMapping("/api/statutContrat")
@@ -33,9 +33,7 @@ public class StatutContratControllers {
     @GetMapping("/{id}")
     public ResponseEntity<StatutContrat> getById(@PathVariable Long id) {
         StatutContrat statutContrat = statutContratService.getById(id);
-        return statutContrat == null
-                ? ResponseEntity.notFound().build()
-                : ResponseEntity.ok(statutContrat);
+        return statutContrat == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(statutContrat);
     }
 
     @PostMapping
@@ -44,8 +42,7 @@ public class StatutContratControllers {
             return ResponseEntity.badRequest().build();
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(statutContratService.save(statutContrat));
+        return ResponseEntity.status(HttpStatus.CREATED).body(statutContratService.save(statutContrat));
     }
 
     @PutMapping("/{id}")

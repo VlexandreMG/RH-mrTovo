@@ -1,4 +1,4 @@
-package com.mrtovo.backend.service;
+package com.mrtovo.backend.service.statutContrat;
 
 import java.util.List;
 
@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.mrtovo.backend.StatutContrat.StatutContrat;
-import com.mrtovo.backend.repository.StatutContratRepository;
+import com.mrtovo.backend.repository.statutContrat.StatutContratRepository;
 
 @Service
 public class StatutContratService {
