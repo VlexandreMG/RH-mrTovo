@@ -132,12 +132,23 @@ public class Bloc3DataSeeder implements ApplicationRunner {
                     return offreEmploiRepository.save(nouvelle);
                 });
 
-        Candidat candidat = new Candidat();
-        candidat.setNom("Doe");
-        candidat.setPrenom("John");
-        candidat.setEmail("john.doe@example.mg");
-        candidat.setTelephone("034 00 000 00");
-        candidat = candidatRepository.save(candidat);
+        final String emailDemo = "john.doe@example.mg";
+        Candidat candidat = candidatRepository.findByEmailIgnoreCase(emailDemo)
+                .orElseGet(() -> {
+                    Candidat nouveau = new Candidat();
+                    nouveau.setNom("Doe");
+                    nouveau.setPrenom("John");
+                    nouveau.setEmail(emailDemo);
+                    nouveau.setTelephone("034 00 000 00");
+                    return candidatRepository.save(nouveau);
+                });
+
+        boolean candidatureDemoExistante = candidatureRepository.findByOffreEmploiId(offre.getId()).stream()
+                .anyMatch(item -> item.getCandidat() != null
+                        && emailDemo.equalsIgnoreCase(item.getCandidat().getEmail()));
+        if (candidatureDemoExistante) {
+            return;
+        }
 
         Candidature candidature = new Candidature();
         candidature.setCandidat(candidat);
