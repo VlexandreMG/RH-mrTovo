@@ -1,23 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      component: () => import('@/components/AppLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
+        { path: 'demandes', name: 'demandes', component: () => import('@/views/DemandesView.vue') },
+        {
+          path: 'demandes/nouvelle',
+          name: 'nouvelle',
+          component: () => import('@/views/NouvelleDemandeView.vue'),
+          meta: { roles: ['MANAGER'] }
+        },
+        { path: 'demandes/:id', name: 'detail', component: () => import('@/views/DemandeDetailView.vue'), props: true },
+        { path: 'grille-salariale', name: 'grilles', component: () => import('@/views/GrillesView.vue') }
+      ]
     },
-    {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
-    },
-  ],
+    { path: '/:pathMatch(.*)*', redirect: '/' }
+  ]
+})
+
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+  if (to.meta.requiresAuth && !auth.user) return '/login'
+  if (to.path === '/login' && auth.user) return '/'
+  if (to.meta.roles && !to.meta.roles.includes(auth.role)) return '/'
 })
 
 export default router
