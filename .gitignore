@@ -37,6 +37,7 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/pnpm-debug.log*
+frontend-v2
 
 # Config local ou variables sensibles
 .env
