@@ -2,7 +2,7 @@ package com.mrtovo.backend.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "entretien", schema = "mrtovo")
@@ -18,7 +18,13 @@ public class Entretien {
     private Evaluation evaluation;
 
     @Column(name = "date_entretien", nullable = false)
-    private LocalDate dateEntretien;
+    private LocalDateTime dateEntretien;
+
+    private String lieu;
+
+    /** Compte-rendu saisi par le recruteur après l'entretien. */
+    @Column(columnDefinition = "TEXT")
+    private String commentaire;
 
     @ManyToOne
     @JoinColumn(name = "statut_entretien_id")
