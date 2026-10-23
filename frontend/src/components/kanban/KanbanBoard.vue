@@ -48,24 +48,26 @@ onMounted(charger)
 </script>
 
 <template>
-  <div class="entete">
-    <RouterLink to="/offres" class="retour">← Retour aux offres</RouterLink>
-    <h1>{{ offre?.titre ?? `Offre #${id}` }}</h1>
-    <p class="muted">Suivi des candidatures : présélection → test → entretien</p>
-  </div>
+  <div class="recrutement">
+    <div class="entete">
+      <RouterLink to="/offres" class="retour">← Retour aux offres</RouterLink>
+      <h1>{{ offre?.titre ?? `Offre #${id}` }}</h1>
+      <p class="muted">Suivi des candidatures : présélection → test → entretien</p>
+    </div>
 
-  <p v-if="chargement" class="muted">Chargement…</p>
-  <p v-else-if="erreur" class="error">Impossible de charger les candidatures : {{ erreur }}</p>
+    <p v-if="chargement" class="muted">Chargement…</p>
+    <p v-else-if="erreur" class="error">Impossible de charger les candidatures : {{ erreur }}</p>
 
-  <div v-else class="board">
-    <KanbanColumn
-      v-for="col in COLONNES"
-      :key="col.statut"
-      :titre="col.titre"
-      :couleur="col.couleur"
-      :candidatures="parStatut[col.statut]"
-      @maj="majCandidature"
-    />
+    <div v-else class="board">
+      <KanbanColumn
+        v-for="col in COLONNES"
+        :key="col.statut"
+        :titre="col.titre"
+        :couleur="col.couleur"
+        :candidatures="parStatut[col.statut]"
+        @maj="majCandidature"
+      />
+    </div>
   </div>
 </template>
 

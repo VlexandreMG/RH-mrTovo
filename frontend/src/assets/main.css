@@ -1,5 +1,4 @@
 :root {
-<<<<<<< HEAD
   --bg: #f4f5fb;
   --surface: #ffffff;
   --surface-2: #f8f9fd;
@@ -95,64 +94,40 @@ table.table { width: 100%; border-collapse: collapse; }
 
 @media (max-width: 760px) {
   .grid-2 { grid-template-columns: 1fr; }
-=======
-  --bg: #f4f5f7;
-  --surface: #ffffff;
-  --surface-2: #f9fafb;
-  --border: #e3e5e8;
-  --text: #1d2125;
-  --muted: #626f86;
-  --primary: #0c66e4;
+}
+
+/* ---------- Bloc 2 : suivi des candidatures ----------
+   Styles limités au conteneur .recrutement pour ne pas modifier les pages du Bloc 1. */
+:root {
   --primary-text: #ffffff;
-  --success: #1f845a;
-  --success-bg: #dcfff1;
-  --danger: #c9372c;
-  --danger-bg: #ffeceb;
-  --warning-bg: #fff7d6;
-  --radius: 8px;
+  --success-bg: var(--success-50);
+  --danger-bg: var(--danger-50);
+  --warning-bg: var(--warning-50);
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-h1, h2, h3 { margin: 0; }
-
-button {
-  font: inherit;
+.recrutement button {
   cursor: pointer;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   padding: 5px 10px;
->>>>>>> bloc2-bis
 }
-button:hover:not(:disabled) { background: var(--surface-2); }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
-button.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
-button.success { background: var(--success); border-color: var(--success); color: #fff; }
-button.danger { background: var(--surface); border-color: var(--danger); color: var(--danger); }
-button.primary:hover:not(:disabled), button.success:hover:not(:disabled) { filter: brightness(1.08); }
-button.danger:hover:not(:disabled) { background: var(--danger-bg); }
+.recrutement button:hover:not(:disabled) { background: var(--surface-2); }
+.recrutement button:disabled { opacity: 0.5; cursor: not-allowed; }
+.recrutement button.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.recrutement button.success { background: var(--success); border-color: var(--success); color: #fff; }
+.recrutement button.danger { background: var(--surface); border-color: var(--danger); color: var(--danger); }
+.recrutement button.primary:hover:not(:disabled), .recrutement button.success:hover:not(:disabled) { filter: brightness(1.08); }
+.recrutement button.danger:hover:not(:disabled) { background: var(--danger-bg); }
 
-input, textarea {
-  font: inherit;
+.recrutement input, .recrutement textarea {
   width: 100%;
   padding: 5px 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
-  color: var(--text);
 }
-textarea { resize: vertical; min-height: 56px; }
+.recrutement textarea { resize: vertical; min-height: 56px; }
 
 .error { color: var(--danger); font-size: 12px; }
-.muted { color: var(--muted); }

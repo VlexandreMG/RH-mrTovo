@@ -1,37 +1,35 @@
-import axios from 'axios'
+import { apiGet, apiPost, apiPut } from '@/api/http'
 
-const api = axios.create({ baseURL: 'http://localhost:8080/api' })
+// Passe par le même client que le Bloc 1 : même URL (port 8012) et même authentification.
 
 /** Message d'erreur lisible renvoyé par le backend (champ "message"). */
 export function messageErreur(error) {
-  return error?.response?.data?.message ?? error?.message ?? 'Erreur inconnue'
+  return error?.message ?? 'Erreur inconnue'
 }
 
 export const offresApi = {
-  lister: () => api.get('/offres').then((r) => r.data),
-  get: (id) => api.get(`/offres/${id}`).then((r) => r.data),
+  lister: () => apiGet('/offres'),
+  get: (id) => apiGet(`/offres/${id}`),
 }
 
 export const candidaturesApi = {
-  parOffre: (offreId) => api.get(`/candidatures/offre/${offreId}`).then((r) => r.data),
-  acceptees: () => api.get('/candidatures/acceptees').then((r) => r.data),
+  parOffre: (offreId) => apiGet(`/candidatures/offre/${offreId}`),
+  acceptees: () => apiGet('/candidatures/acceptees'),
 
   // 1. Présélection
-  preselection: (id, valide) => api.post(`/candidatures/${id}/preselection`, { valide }).then((r) => r.data),
+  preselection: (id, valide) => apiPost(`/candidatures/${id}/preselection`, { valide }),
 
   // 2. Test
-  saisirNote: (id, note) => api.put(`/candidatures/${id}/test/note`, { note }).then((r) => r.data),
-  deciderTest: (id, valide) => api.post(`/candidatures/${id}/test/decision`, { valide }).then((r) => r.data),
+  saisirNote: (id, note) => apiPut(`/candidatures/${id}/test/note`, { note }),
+  deciderTest: (id, valide) => apiPost(`/candidatures/${id}/test/decision`, { valide }),
 
   // 3. Entretien
-  planifierEntretien: (id, date, lieu) =>
-    api.post(`/candidatures/${id}/entretiens`, { date, lieu }).then((r) => r.data),
+  planifierEntretien: (id, date, lieu) => apiPost(`/candidatures/${id}/entretiens`, { date, lieu }),
 }
 
 export const entretiensApi = {
-  resultat: (id, valide, commentaire) =>
-    api.post(`/entretiens/${id}/resultat`, { valide, commentaire }).then((r) => r.data),
-  annuler: (id) => api.post(`/entretiens/${id}/annulation`).then((r) => r.data),
+  resultat: (id, valide, commentaire) => apiPost(`/entretiens/${id}/resultat`, { valide, commentaire }),
+  annuler: (id) => apiPost(`/entretiens/${id}/annulation`),
 }
 
 /** Identifiants des statuts (identiques à data.sql / Statuts.java). */

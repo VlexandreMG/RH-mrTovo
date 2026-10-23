@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-<<<<<<< HEAD
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -11,6 +10,7 @@ const router = createRouter({
       component: () => import('@/components/AppLayout.vue'),
       meta: { requiresAuth: true },
       children: [
+        // Bloc 1 : expression du besoin en personnel
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
         { path: 'demandes', name: 'demandes', component: () => import('@/views/DemandesView.vue') },
         {
@@ -20,7 +20,22 @@ const router = createRouter({
           meta: { roles: ['MANAGER'] }
         },
         { path: 'demandes/:id', name: 'detail', component: () => import('@/views/DemandeDetailView.vue'), props: true },
-        { path: 'grille-salariale', name: 'grilles', component: () => import('@/views/GrillesView.vue') }
+        { path: 'grille-salariale', name: 'grilles', component: () => import('@/views/GrillesView.vue') },
+
+        // Bloc 2 : suivi des candidatures (présélection → test → entretien)
+        {
+          path: 'offres',
+          name: 'offres',
+          component: () => import('@/components/offre/OffreList.vue'),
+          meta: { roles: ['RH'] }
+        },
+        {
+          path: 'offres/:id/kanban',
+          name: 'kanban',
+          component: () => import('@/components/kanban/KanbanBoard.vue'),
+          props: true,
+          meta: { roles: ['RH'] }
+        }
       ]
     },
     { path: '/:pathMatch(.*)*', redirect: '/' }
@@ -32,18 +47,6 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && !auth.user) return '/login'
   if (to.path === '/login' && auth.user) return '/'
   if (to.meta.roles && !to.meta.roles.includes(auth.role)) return '/'
-=======
-import OffreList from '@/components/offre/OffreList.vue'
-import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
-
-const routes = [
-  { path: '/', redirect: '/offres' },
-  { path: '/offres', name: 'offres', component: OffreList },
-  { path: '/offres/:id/kanban', name: 'kanban', component: KanbanBoard, props: true },
-]
-
-export default createRouter({
-  history: createWebHistory(),
-  routes,
->>>>>>> bloc2-bis
 })
+
+export default router

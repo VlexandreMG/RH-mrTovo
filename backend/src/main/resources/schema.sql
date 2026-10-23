@@ -75,3 +75,6 @@ CREATE TABLE entretien (
     commentaire TEXT,
     statut_entretien_id INT REFERENCES statut_entretien(id)
 );
+
+-- Remet le search_path par défaut : la connexion retourne au pool et sert ensuite au Bloc 1 (schéma public).
+RESET search_path;

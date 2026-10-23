@@ -4,12 +4,9 @@ Application Spring Boot (API) + Vue 3 (interface) pour exprimer, chiffrer, valid
 
 ## Lancer le projet
 
-1. **Base de données** : PostgreSQL, base `rh_db` (port 5433, voir `backend/src/main/resources/application.properties`).
-   Le modèle a changé : repartez d'une base vide.
-   ```sql
-   DROP SCHEMA public CASCADE; CREATE SCHEMA public;
-   ```
-   Le script de référence est dans `database/schema.sql` (Hibernate crée les tables tout seul avec `ddl-auto=update`).
+1. **Base de données** : PostgreSQL, base `rh_db` (connexion dans `backend/src/main/resources/application.properties`).
+   - **Bloc 1** (demandes, schéma `public`) : Hibernate crée les tables (`ddl-auto=update`), `DataInitializer` insère les données de démo. Script de référence : `database/schema.sql`.
+   - **Bloc 2** (candidatures, schéma `mrtovo`) : `schema.sql` + `data.sql` sont rejoués à **chaque démarrage** (le schéma `mrtovo` est remis à zéro, le Bloc 1 n'est pas touché).
 2. **Backend** : `cd backend && ./mvnw spring-boot:run` (port 8012). Les données de démo sont insérées au premier démarrage.
 3. **Frontend** : `cd frontend && npm install && npm run dev` puis ouvrir http://localhost:5173
 
@@ -17,7 +14,7 @@ Application Spring Boot (API) + Vue 3 (interface) pour exprimer, chiffrer, valid
 
 | Rôle | Email | Mot de passe |
 |---|---|---|
-| Manager | manager@rh.com | manager123 |
+| Manager (un par département) | manager.informatique@rh.com, manager.rh@rh.com, manager.finance@rh.com, manager.direction@rh.com, manager.commercial@rh.com | manager123 |
 | RH | rh@rh.com | rh123 |
 | Finance | finance@rh.com | finance123 |
 | Direction | direction@rh.com | direction123 |
@@ -33,3 +30,9 @@ Application Spring Boot (API) + Vue 3 (interface) pour exprimer, chiffrer, valid
 - **Budget** : le manager saisit un budget total demandé ; le RH saisit le coût estimé par personne (dans la fourchette de la grille) ; le coût total est calculé et comparé au budget.
 - **Workflow** : RH → Finance → Direction. RH et Finance donnent un **avis** (même défavorable, la demande continue) ; la Direction a le **dernier mot** sur la demande entière. Seul le RH ouvre le recrutement, uniquement si la demande est autorisée.
 - **Historique** : chaque avis est une ligne distincte dans `validation`, jamais écrasée.
+
+## Bloc 2 : suivi des candidatures
+
+Menu **Candidatures** (rôle RH) : liste des offres, puis tableau kanban par offre.
+Parcours d'une candidature : À traiter → (présélection) Test → (note /20 + décision) Attente entretien → Accepté / Refusé.
+Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.java` et `frontend/src/services/api.js`.

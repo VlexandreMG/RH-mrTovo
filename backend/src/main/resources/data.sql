@@ -84,3 +84,6 @@ INSERT INTO entretien (id, evaluation_id, date_entretien, lieu, commentaire, sta
 (2, 4, CURRENT_DATE - INTERVAL '1 day' + INTERVAL '14 hours', 'Salle de réunion 1', 'Très bon profil, motivée.', 2);
 
 SELECT setval('entretien_id_seq', (SELECT MAX(id) FROM entretien));
+
+-- Remet le search_path par défaut : la connexion retourne au pool et sert ensuite au Bloc 1 (schéma public).
+RESET search_path;

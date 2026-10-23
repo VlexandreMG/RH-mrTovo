@@ -19,12 +19,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <h1>Offres d'emploi</h1>
-  <p v-if="chargement" class="muted">Chargement…</p>
-  <p v-else-if="erreur" class="error">Impossible de charger les offres : {{ erreur }}</p>
-  <p v-else-if="!offres.length" class="muted">Aucune offre pour le moment.</p>
-  <div v-else class="grid">
-    <OffreCard v-for="o in offres" :key="o.id" :offre="o" />
+  <div class="recrutement">
+    <h1>Offres d'emploi</h1>
+    <p v-if="chargement" class="muted">Chargement…</p>
+    <p v-else-if="erreur" class="error">Impossible de charger les offres : {{ erreur }}</p>
+    <p v-else-if="!offres.length" class="muted">Aucune offre pour le moment.</p>
+    <div v-else class="grid">
+      <OffreCard v-for="o in offres" :key="o.id" :offre="o" />
+    </div>
   </div>
 </template>
 

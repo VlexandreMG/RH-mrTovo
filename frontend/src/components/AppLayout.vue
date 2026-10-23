@@ -13,7 +13,8 @@ const menu = computed(() => [
   { to: '/', label: 'Tableau de bord', icon: 'dashboard', exact: true },
   { to: '/demandes', label: 'Demandes', icon: 'list' },
   ...(auth.role === 'MANAGER' ? [{ to: '/demandes/nouvelle', label: 'Nouvelle demande', icon: 'plus' }] : []),
-  { to: '/grille-salariale', label: 'Grille salariale', icon: 'coins' }
+  { to: '/grille-salariale', label: 'Grille salariale', icon: 'coins' },
+  ...(auth.role === 'RH' ? [{ to: '/offres', label: 'Candidatures', icon: 'briefcase' }] : [])
 ])
 
 function isActive(m) {
