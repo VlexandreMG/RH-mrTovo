@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+<<<<<<< HEAD
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -31,6 +32,18 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && !auth.user) return '/login'
   if (to.path === '/login' && auth.user) return '/'
   if (to.meta.roles && !to.meta.roles.includes(auth.role)) return '/'
-})
+=======
+import OffreList from '@/components/offre/OffreList.vue'
+import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 
-export default router
+const routes = [
+  { path: '/', redirect: '/offres' },
+  { path: '/offres', name: 'offres', component: OffreList },
+  { path: '/offres/:id/kanban', name: 'kanban', component: KanbanBoard, props: true },
+]
+
+export default createRouter({
+  history: createWebHistory(),
+  routes,
+>>>>>>> bloc2-bis
+})
