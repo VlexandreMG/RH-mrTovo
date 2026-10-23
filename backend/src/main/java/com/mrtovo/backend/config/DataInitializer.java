@@ -2,6 +2,7 @@ package com.mrtovo.backend.config;
 
 import com.mrtovo.backend.entity.*;
 import com.mrtovo.backend.repository.*;
+import com.mrtovo.backend.service.DemandeService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -118,6 +119,12 @@ creerUtilisateur(utilisateurRepository, encoder, "Manager Commercial", "manager.
     creerUtilisateur(utilisateurRepository, encoder, "Directeur Général", "direction@rh.com", "direction123", RoleUtilisateur.DIRECTION, null);
 }
         };
+    }
+
+    /** Chaque demande doit avoir son offre d'emploi : rattrape celles créées avant ce lien. */
+    @Bean
+    CommandLineRunner lierDemandesAuxOffres(DemandeService demandeService) {
+        return args -> demandeService.creerOffresManquantes();
     }
 
    private void creerUtilisateur(UtilisateurRepository repo, PasswordEncoder encoder,

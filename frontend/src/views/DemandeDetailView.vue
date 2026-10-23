@@ -150,6 +150,11 @@ const etapeLabel = { RH: 'Avis RH', FINANCE: 'Avis Finance', DIRECTION: 'Décisi
             <div><span>Souhaité pour le</span><b>{{ date(d.dateSouhaitee) }}</b></div>
             <div v-if="d.employeARemplacer"><span>Employé à remplacer</span><b>{{ d.employeARemplacer }}</b></div>
             <div v-if="d.dateOuverture"><span>Recrutement ouvert le</span><b>{{ dateHeure(d.dateOuverture) }}</b></div>
+            <div v-if="d.idOffre"><span>Offre d'emploi</span><b>
+              <RouterLink v-if="auth.role === 'RH'" :to="{ name: 'kanban', params: { id: d.idOffre } }">Offre #{{ d.idOffre }}</RouterLink>
+              <template v-else>Offre #{{ d.idOffre }}</template>
+              · {{ d.statutOffre }}
+            </b></div>
             <div class="full"><span>Motif</span><p class="motif">{{ d.motif }}</p></div>
           </div>
         </section>

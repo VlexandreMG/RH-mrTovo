@@ -1,3 +1,4 @@
+-- Données de démonstration : insérées une seule fois (ON CONFLICT DO NOTHING), jamais écrasées.
 SET search_path TO mrtovo;
 
 -- ==========================================
@@ -8,21 +9,22 @@ INSERT INTO statut_candidature (id, libelle) VALUES
 (2, 'Test'),
 (3, 'Attente entretien'),
 (4, 'Accepté'),
-(5, 'Refusé');
+(5, 'Refusé') ON CONFLICT DO NOTHING;
 
 INSERT INTO statut_offre_emploi (id, libelle) VALUES
 (1, 'Ouverte'),
-(2, 'Fermée');
+(2, 'Fermée'),
+(3, 'En attente') ON CONFLICT DO NOTHING;  -- offre créée avec la demande, publiée à l'ouverture du recrutement
 
 INSERT INTO statut_evaluation (id, libelle) VALUES
 (1, 'En attente'),
 (2, 'Validé'),
-(3, 'Échoué');
+(3, 'Échoué') ON CONFLICT DO NOTHING;
 
 INSERT INTO statut_entretien (id, libelle) VALUES
 (1, 'Planifié'),
 (2, 'Terminé'),
-(3, 'Annulé');
+(3, 'Annulé') ON CONFLICT DO NOTHING;
 
 SELECT setval('statut_candidature_id_seq', (SELECT MAX(id) FROM statut_candidature));
 SELECT setval('statut_offre_emploi_id_seq', (SELECT MAX(id) FROM statut_offre_emploi));
@@ -33,7 +35,7 @@ SELECT setval('statut_entretien_id_seq', (SELECT MAX(id) FROM statut_entretien))
 -- 2. OFFRE D'EMPLOI
 -- ==========================================
 INSERT INTO offre_emploi (id, titre, description, date_publication, statut_offre_emploi_id) VALUES
-(1, 'Développeur Fullstack Java / Vue.js', 'Poste de développeur pour la conception et le suivi de systèmes RH.', CURRENT_DATE, 1);
+(1, 'Développeur Fullstack Java / Vue.js', 'Poste de développeur pour la conception et le suivi de systèmes RH.', CURRENT_DATE, 1) ON CONFLICT DO NOTHING;
 
 SELECT setval('offre_emploi_id_seq', (SELECT MAX(id) FROM offre_emploi));
 
@@ -47,7 +49,7 @@ INSERT INTO candidat (id, nom, prenom, email, telephone, fichier_cv_url) VALUES
 (4, 'Rasoa', 'Sarah', 'sarah.rasoa@gmail.com', '0340000004', '/cv/sarah.pdf'),
 (5, 'Randria', 'Kevin', 'kevin.randria@gmail.com', '0340000005', '/cv/kevin.pdf'),
 (6, 'Ranaivo', 'Aina', 'aina.ranaivo@gmail.com', '0340000006', '/cv/aina.pdf'),
-(7, 'Razafy', 'Paul', 'paul.razafy@gmail.com', '0340000007', '/cv/paul.pdf');
+(7, 'Razafy', 'Paul', 'paul.razafy@gmail.com', '0340000007', '/cv/paul.pdf') ON CONFLICT DO NOTHING;
 
 SELECT setval('candidat_id_seq', (SELECT MAX(id) FROM candidat));
 
@@ -61,7 +63,7 @@ INSERT INTO candidature (id, candidat_id, offre_emploi_id, date_candidature, sta
 (4, 4, 1, CURRENT_DATE - INTERVAL '3 days', 2),  -- Test : note saisie, décision à prendre
 (5, 5, 1, CURRENT_DATE - INTERVAL '2 days', 3),  -- Attente entretien (entretien planifié)
 (6, 6, 1, CURRENT_DATE - INTERVAL '1 day', 4),   -- Accepté (→ Sarobidy)
-(7, 7, 1, CURRENT_DATE - INTERVAL '6 days', 5);  -- Refusé à la présélection
+(7, 7, 1, CURRENT_DATE - INTERVAL '6 days', 5) ON CONFLICT DO NOTHING;  -- Refusé à la présélection
 
 SELECT setval('candidature_id_seq', (SELECT MAX(id) FROM candidature));
 
@@ -72,7 +74,7 @@ INSERT INTO evaluation (id, candidature_id, note_test, statut_evaluation_id) VAL
 (1, 3, NULL, 1),
 (2, 4, 14.5, 1),
 (3, 5, 16, 2),
-(4, 6, 17, 2);
+(4, 6, 17, 2) ON CONFLICT DO NOTHING;
 
 SELECT setval('evaluation_id_seq', (SELECT MAX(id) FROM evaluation));
 
@@ -81,7 +83,7 @@ SELECT setval('evaluation_id_seq', (SELECT MAX(id) FROM evaluation));
 -- ==========================================
 INSERT INTO entretien (id, evaluation_id, date_entretien, lieu, commentaire, statut_entretien_id) VALUES
 (1, 3, CURRENT_DATE + INTERVAL '2 days 10 hours', 'Salle de réunion 1', NULL, 1),
-(2, 4, CURRENT_DATE - INTERVAL '1 day' + INTERVAL '14 hours', 'Salle de réunion 1', 'Très bon profil, motivée.', 2);
+(2, 4, CURRENT_DATE - INTERVAL '1 day' + INTERVAL '14 hours', 'Salle de réunion 1', 'Très bon profil, motivée.', 2) ON CONFLICT DO NOTHING;
 
 SELECT setval('entretien_id_seq', (SELECT MAX(id) FROM entretien));
 

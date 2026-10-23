@@ -6,7 +6,7 @@ Application Spring Boot (API) + Vue 3 (interface) pour exprimer, chiffrer, valid
 
 1. **Base de données** : PostgreSQL, base `rh_db` (connexion dans `backend/src/main/resources/application.properties`).
    - **Bloc 1** (demandes, schéma `public`) : Hibernate crée les tables (`ddl-auto=update`), `DataInitializer` insère les données de démo. Script de référence : `database/schema.sql`.
-   - **Bloc 2** (candidatures, schéma `mrtovo`) : `schema.sql` + `data.sql` sont rejoués à **chaque démarrage** (le schéma `mrtovo` est remis à zéro, le Bloc 1 n'est pas touché).
+   - **Bloc 2** (candidatures, schéma `mrtovo`) : `schema.sql` + `data.sql` sont exécutés à chaque démarrage mais ne créent que ce qui manque (données conservées). Pour repartir de zéro : `DROP SCHEMA mrtovo CASCADE;`.
 2. **Backend** : `cd backend && ./mvnw spring-boot:run` (port 8012). Les données de démo sont insérées au premier démarrage.
 3. **Frontend** : `cd frontend && npm install && npm run dev` puis ouvrir http://localhost:5173
 
@@ -34,5 +34,6 @@ Application Spring Boot (API) + Vue 3 (interface) pour exprimer, chiffrer, valid
 ## Bloc 2 : suivi des candidatures
 
 Menu **Candidatures** (rôle RH) : liste des offres, puis tableau kanban par offre.
+Chaque demande crée son offre d'emploi : **En attente** à la création, **Fermée** si la Direction refuse, **Ouverte** à l'ouverture du recrutement.
 Parcours d'une candidature : À traiter → (présélection) Test → (note /20 + décision) Attente entretien → Accepté / Refusé.
 Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.java` et `frontend/src/services/api.js`.

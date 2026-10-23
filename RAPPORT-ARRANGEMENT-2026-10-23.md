@@ -87,9 +87,59 @@ git checkout 3c8844c -- frontend/eslint.config.js frontend/.oxlintrc.json fronte
 
 Autres points à décider en équipe :
 
-- **Lien Bloc 1 → Bloc 2** : une demande au statut `RECRUTEMENT_OUVERT` ne crée pas encore d'`offre_emploi`. Les offres viennent seulement de `data.sql`.
+- ~~**Lien Bloc 1 → Bloc 2**~~ : fait, voir la section 5.
 - **Droits backend du Bloc 2** : seul le menu est réservé au RH. Les endpoints `/api/offres`, `/api/candidatures` et `/api/entretiens` restent ouverts à tout utilisateur connecté (ajouter `@PreAuthorize("hasRole('RH')")` si besoin).
 - **`application.properties`** contient vos identifiants locaux (`mrtovo/mrtovo`, port 5432) au lieu de ceux de l'équipe (`postgres/1234`, port 5433). Pensez-y avant de commiter.
 - **`TestController`** (`/api/hello`) : code de démarrage qui ne sert plus à rien.
 
 Aucun commit n'a été fait : toutes les modifications sont dans l'arbre de travail (`git diff` pour les relire).
+
+---
+
+## 5. Évolution : une demande crée son offre d'emploi
+
+**Date :** vendredi 23 octobre 2026, **14:23** (UTC+03:00)
+
+### Règle
+
+Quand un manager crée une demande de recrutement, une offre d'emploi est créée **en même temps, dans la même transaction**. Son statut suit ensuite le workflow de la demande :
+
+| Événement sur la demande | Statut de l'offre |
+|---|---|
+| Création par le manager | **En attente** (nouveau statut, id 3) |
+| Refus de la Direction | **Fermée** |
+| Ouverture du recrutement par le RH | **Ouverte** (la date de publication passe au jour de l'ouverture) |
+
+Contenu généré : le titre est « Poste – Département » (ex. *Développeur – Informatique*). La description reprend la description du poste, le motif et les effectifs (ex. *2 Junior, 1 Senior*).
+
+### Fichiers modifiés
+
+| Fichier | Modification |
+|---|---|
+| `model/OffreEmploi.java` | Nouveau champ `demande` (`@OneToOne`, colonne `id_demande` unique, vide pour une offre saisie à la main) |
+| `model/Statuts.java` | Constantes `OffreEmploi.OUVERTE / FERMEE / EN_ATTENTE` |
+| `repository/OffreEmploiRepository.java` | `findByDemandeIdDemande` |
+| `service/DemandeService.java` | Crée l'offre dans `creer()`, met à jour son statut dans `valider()` et `ouvrir()`. `creerOffresManquantes()` rattrape les anciennes demandes |
+| `config/DataInitializer.java` | Au démarrage, crée l'offre des demandes qui n'en ont pas |
+| `dto/ApiDtos.java` (`DemandeDto`) | Nouveaux champs `idOffre`, `statutOffre` |
+| `dto/OffreDTO.java`, `RecrutementService.java` | Nouveau champ `idDemande` |
+| `resources/schema.sql` | Colonne `id_demande`. **Le schéma `mrtovo` n'est plus supprimé à chaque démarrage** (`IF NOT EXISTS`), sinon les offres créées depuis les demandes disparaîtraient au redémarrage |
+| `resources/data.sql` | Statut « En attente ». Données de démo insérées une seule fois (`ON CONFLICT DO NOTHING`) |
+| `views/DemandeDetailView.vue` | Affiche « Offre #N · statut », avec un lien vers le kanban pour le RH |
+| `components/offre/OffreCard.vue` | Badge orange « En attente », « Créée le » au lieu de « Publiée le », numéro de la demande |
+
+La clé étrangère `offre_emploi.id_demande → public.demande_recrutement` est ajoutée par Hibernate et non par `schema.sql`, car au premier démarrage la table du Bloc 1 n'existe pas encore quand le script s'exécute.
+
+### Vérifications
+
+| Test | Résultat |
+|---|---|
+| `./mvnw compile`, `npm run build` | OK |
+| Création d'une demande (manager Informatique) | Offre #2 créée, statut « En attente » |
+| RH → Finance → Direction favorables | Offre toujours « En attente » |
+| Ouverture du recrutement par le RH | Offre « Ouverte » |
+| Redémarrage du backend | Offre #2 conservée |
+
+⚠️ Ces tests ont été faits sur la base locale `rh_db` : la **demande #1** (« Projet paie », Développeur, 2 Junior + 1 Senior) et son **offre #2** y sont restées. Supprimez-les si besoin.
+
+Pour repartir d'un schéma Bloc 2 propre : `DROP SCHEMA mrtovo CASCADE;`, puis redémarrer le backend.

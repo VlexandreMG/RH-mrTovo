@@ -6,11 +6,15 @@ defineProps({ offre: { type: Object, required: true } })
   <RouterLink :to="{ name: 'kanban', params: { id: offre.id } }" class="card">
     <div class="head">
       <h3>{{ offre.titre }}</h3>
-      <span class="badge" :class="{ fermee: offre.statut === 'Fermée' }">{{ offre.statut }}</span>
+      <span class="badge" :class="{ fermee: offre.statut === 'Fermée', attente: offre.statut === 'En attente' }">{{ offre.statut }}</span>
     </div>
     <p class="desc">{{ offre.description }}</p>
     <div class="foot muted">
-      <span>Publiée le {{ new Date(offre.datePublication).toLocaleDateString('fr-FR') }}</span>
+      <span>
+        {{ offre.statut === 'En attente' ? 'Créée le' : 'Publiée le' }}
+        {{ new Date(offre.datePublication).toLocaleDateString('fr-FR') }}
+        <template v-if="offre.idDemande"> · demande #{{ offre.idDemande }}</template>
+      </span>
       <span>{{ offre.nbCandidatures }} candidature(s)</span>
     </div>
   </RouterLink>
@@ -35,6 +39,7 @@ h3 { font-size: 15px; }
   background: var(--success-bg); color: var(--success); white-space: nowrap;
 }
 .badge.fermee { background: var(--surface-2); color: var(--muted); }
+.badge.attente { background: var(--warning-bg); color: #a96a05; }
 .desc { margin: 8px 0 12px; }
 .foot { display: flex; justify-content: space-between; font-size: 12px; }
 </style>

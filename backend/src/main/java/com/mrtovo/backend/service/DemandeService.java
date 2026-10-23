@@ -3,6 +3,8 @@ package com.mrtovo.backend.service;
 import com.mrtovo.backend.dto.ApiDtos.*;
 import com.mrtovo.backend.entity.*;
 import com.mrtovo.backend.exception.BusinessException;
+import com.mrtovo.backend.model.OffreEmploi;
+import com.mrtovo.backend.model.Statuts;
 import com.mrtovo.backend.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,8 @@ public class DemandeService {
     private final UtilisateurRepository utilisateurRepository;
     private final EmployeRepository employeRepository;
     private final GrilleService grilleService;
+    private final OffreEmploiRepository offreRepository;
+    private final StatutOffreEmploiRepository statutOffreRepository;
 
     public DemandeService(DemandeRecrutementRepository demandeRepository,
                           DepartementRepository departementRepository,
@@ -33,7 +37,9 @@ public class DemandeService {
                           NiveauPosteRepository niveauRepository,
                           UtilisateurRepository utilisateurRepository,
                           EmployeRepository employeRepository,
-                          GrilleService grilleService) {
+                          GrilleService grilleService,
+                          OffreEmploiRepository offreRepository,
+                          StatutOffreEmploiRepository statutOffreRepository) {
         this.demandeRepository = demandeRepository;
         this.departementRepository = departementRepository;
         this.posteRepository = posteRepository;
@@ -41,6 +47,8 @@ public class DemandeService {
         this.utilisateurRepository = utilisateurRepository;
         this.employeRepository = employeRepository;
         this.grilleService = grilleService;
+        this.offreRepository = offreRepository;
+        this.statutOffreRepository = statutOffreRepository;
     }
 
     // ------------------------------------------------------------------ Création
@@ -117,7 +125,24 @@ if (departement == null) {
             demande.getLignes().add(ligne);
         }
 
-        return toDto(demandeRepository.save(demande));
+        DemandeRecrutement enregistree = demandeRepository.save(demande);
+        creerOffre(enregistree);
+        return toDto(enregistree);
+    }
+
+    /** Crée les offres des demandes qui n'en ont pas encore (demandes antérieures à ce lien). */
+    @Transactional
+    public void creerOffresManquantes() {
+        for (DemandeRecrutement d : demandeRepository.findAll()) {
+            if (offreRepository.findByDemandeIdDemande(d.getIdDemande()).isEmpty()) {
+                creerOffre(d);
+                if (d.getStatut() == StatutDemande.RECRUTEMENT_OUVERT) {
+                    changerStatutOffre(d, Statuts.OffreEmploi.OUVERTE);
+                } else if (d.getStatut() == StatutDemande.REFUSEE) {
+                    changerStatutOffre(d, Statuts.OffreEmploi.FERMEE);
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------------------ Consultation
@@ -198,6 +223,9 @@ if (departement == null) {
             case DIRECTION -> decision == DecisionValidation.FAVORABLE
                     ? StatutDemande.AUTORISEE : StatutDemande.REFUSEE;
         });
+        if (demande.getStatut() == StatutDemande.REFUSEE) {
+            changerStatutOffre(demande, Statuts.OffreEmploi.FERMEE);
+        }
 
         return toDto(demandeRepository.save(demande));
     }
@@ -214,7 +242,40 @@ if (departement == null) {
         }
         d.setStatut(StatutDemande.RECRUTEMENT_OUVERT);
         d.setDateOuverture(LocalDateTime.now());
+        changerStatutOffre(d, Statuts.OffreEmploi.OUVERTE);
         return toDto(demandeRepository.save(d));
+    }
+
+    // ------------------------------------------------------------------ Offre d'emploi liée
+
+    /** L'offre est créée avec la demande, en attente : elle n'est publiée qu'à l'ouverture du recrutement. */
+    private OffreEmploi creerOffre(DemandeRecrutement d) {
+        StringBuilder description = new StringBuilder();
+        if (d.getPoste().getDescription() != null) {
+            description.append(d.getPoste().getDescription()).append("\n\n");
+        }
+        description.append(d.getMotif()).append("\n\nPostes à pourvoir : ");
+        description.append(String.join(", ", d.getLignes().stream()
+                .map(l -> l.getEffectif() + " " + l.getNiveau().getLibelle())
+                .toList()));
+        description.append(".");
+
+        OffreEmploi offre = new OffreEmploi();
+        offre.setDemande(d);
+        offre.setTitre(d.getPoste().getIntitule() + " – " + d.getDepartement().getNom());
+        offre.setDescription(description.toString());
+        offre.setDatePublication(d.getDateCreation().toLocalDate());
+        offre.setStatutOffreEmploi(statutOffreRepository.getReferenceById(Statuts.OffreEmploi.EN_ATTENTE));
+        return offreRepository.save(offre);
+    }
+
+    private void changerStatutOffre(DemandeRecrutement d, long idStatut) {
+        offreRepository.findByDemandeIdDemande(d.getIdDemande()).ifPresent(offre -> {
+            offre.setStatutOffreEmploi(statutOffreRepository.getReferenceById(idStatut));
+            if (idStatut == Statuts.OffreEmploi.OUVERTE) {
+                offre.setDatePublication(LocalDate.now());
+            }
+        });
     }
 
     /**
@@ -307,6 +368,7 @@ if (departement == null) {
                 .toList();
 
         Employe e = d.getEmployeARemplacer();
+        OffreEmploi offre = offreRepository.findByDemandeIdDemande(d.getIdDemande()).orElse(null);
         return new DemandeDto(d.getIdDemande(),
                 d.getPoste().getIdPoste(), d.getPoste().getIntitule(),
                 d.getDepartement().getIdDepartement(), d.getDepartement().getNom(),
@@ -316,6 +378,8 @@ if (departement == null) {
                 d.getBudgetDemandeTotal(), effectifTotal, coutTotal,
                 d.getDateSouhaitee(), d.getStatut().name(),
                 d.getDateCreation(), d.getDateOuverture(),
-                lignes, validations);
+                lignes, validations,
+                offre == null ? null : offre.getId(),
+                offre == null || offre.getStatutOffreEmploi() == null ? null : offre.getStatutOffreEmploi().getLibelle());
     }
 }

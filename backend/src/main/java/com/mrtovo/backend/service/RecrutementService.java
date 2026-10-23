@@ -185,7 +185,8 @@ public class RecrutementService {
     private OffreDTO versDTO(OffreEmploi o) {
         return new OffreDTO(o.getId(), o.getTitre(), o.getDescription(), o.getDatePublication(),
                 o.getStatutOffreEmploi() == null ? null : o.getStatutOffreEmploi().getLibelle(),
-                candidatureRepo.countByOffreEmploiId(o.getId()));
+                candidatureRepo.countByOffreEmploiId(o.getId()),
+                o.getDemande() == null ? null : o.getDemande().getIdDemande());
     }
 
     private CandidatureDTO versDTO(Candidature c) {

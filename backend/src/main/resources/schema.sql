@@ -1,27 +1,28 @@
--- ATTENTION (dev) : le schéma est recréé à chaque démarrage de l'application.
-DROP SCHEMA IF EXISTS mrtovo CASCADE;
-CREATE SCHEMA mrtovo;
+-- Exécuté à chaque démarrage : ne crée que ce qui manque, les données existantes sont conservées
+-- (les offres sont créées depuis les demandes du Bloc 1 et doivent survivre aux redémarrages).
+-- Pour repartir de zéro : DROP SCHEMA mrtovo CASCADE;
+CREATE SCHEMA IF NOT EXISTS mrtovo;
 SET search_path TO mrtovo;
 
 -- ==========================================
 -- 1. TABLES DE STATUTS
 -- ==========================================
-CREATE TABLE statut_candidature (
+CREATE TABLE IF NOT EXISTS statut_candidature (
     id SERIAL PRIMARY KEY,
     libelle VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE statut_offre_emploi (
+CREATE TABLE IF NOT EXISTS statut_offre_emploi (
     id SERIAL PRIMARY KEY,
     libelle VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE statut_evaluation (
+CREATE TABLE IF NOT EXISTS statut_evaluation (
     id SERIAL PRIMARY KEY,
     libelle VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE statut_entretien (
+CREATE TABLE IF NOT EXISTS statut_entretien (
     id SERIAL PRIMARY KEY,
     libelle VARCHAR(255) NOT NULL
 );
@@ -29,7 +30,7 @@ CREATE TABLE statut_entretien (
 -- ==========================================
 -- 2. TABLES PRINCIPALES
 -- ==========================================
-CREATE TABLE candidat (
+CREATE TABLE IF NOT EXISTS candidat (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(255) NOT NULL,
     prenom VARCHAR(255) NOT NULL,
@@ -38,7 +39,7 @@ CREATE TABLE candidat (
     fichier_cv_url VARCHAR(250)
 );
 
-CREATE TABLE offre_emploi (
+CREATE TABLE IF NOT EXISTS offre_emploi (
     id SERIAL PRIMARY KEY,
     titre VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
@@ -46,10 +47,14 @@ CREATE TABLE offre_emploi (
     statut_offre_emploi_id INT REFERENCES statut_offre_emploi(id)
 );
 
+-- Lien avec la demande de recrutement (public.demande_recrutement) : une offre par demande.
+-- La clé étrangère est ajoutée par Hibernate, la table du Bloc 1 n'existant pas encore au premier démarrage.
+ALTER TABLE offre_emploi ADD COLUMN IF NOT EXISTS id_demande BIGINT UNIQUE;
+
 -- ==========================================
 -- 3. TABLES DÉPENDANTES
 -- ==========================================
-CREATE TABLE candidature (
+CREATE TABLE IF NOT EXISTS candidature (
     id SERIAL PRIMARY KEY,
     candidat_id INT NOT NULL REFERENCES candidat(id) ON DELETE CASCADE,
     offre_emploi_id INT NOT NULL REFERENCES offre_emploi(id) ON DELETE CASCADE,
@@ -59,7 +64,7 @@ CREATE TABLE candidature (
 );
 
 -- Test : une évaluation par candidature, créée lors de la présélection
-CREATE TABLE evaluation (
+CREATE TABLE IF NOT EXISTS evaluation (
     id SERIAL PRIMARY KEY,
     candidature_id INT NOT NULL UNIQUE REFERENCES candidature(id) ON DELETE CASCADE,
     note_test NUMERIC(4,2) CHECK (note_test BETWEEN 0 AND 20),
@@ -67,7 +72,7 @@ CREATE TABLE evaluation (
 );
 
 -- Entretien : un ou plusieurs (si annulé puis replanifié) par évaluation
-CREATE TABLE entretien (
+CREATE TABLE IF NOT EXISTS entretien (
     id SERIAL PRIMARY KEY,
     evaluation_id INT NOT NULL REFERENCES evaluation(id) ON DELETE CASCADE,
     date_entretien TIMESTAMP NOT NULL,

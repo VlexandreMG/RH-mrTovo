@@ -13,6 +13,14 @@ public final class Statuts {
         private Candidature() {}
     }
 
+    public static final class OffreEmploi {
+        public static final long OUVERTE = 1;
+        public static final long FERMEE = 2;
+        /** Créée avec la demande, en attente de l'ouverture du recrutement. */
+        public static final long EN_ATTENTE = 3;
+        private OffreEmploi() {}
+    }
+
     public static final class Evaluation {
         public static final long EN_ATTENTE = 1;
         public static final long VALIDE = 2;

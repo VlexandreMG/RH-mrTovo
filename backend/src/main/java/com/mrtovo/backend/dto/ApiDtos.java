@@ -84,7 +84,8 @@ public final class ApiDtos {
             LocalDateTime dateCreation,
             LocalDateTime dateOuverture,
             List<LigneDto> lignes,
-            List<ValidationDto> validations
+            List<ValidationDto> validations,
+            Long idOffre, String statutOffre
     ) {
     }
 }
