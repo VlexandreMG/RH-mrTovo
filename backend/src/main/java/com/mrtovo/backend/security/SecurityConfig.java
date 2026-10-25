@@ -38,6 +38,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/public/**").permitAll()
+                        .requestMatchers("/api/candidat/**").hasRole("CANDIDAT")
+                        .requestMatchers("/api/**").hasAnyRole("MANAGER", "RH", "FINANCE", "DIRECTION")
                         .anyRequest().authenticated()
                 )
                 // 401 sans en-tête WWW-Authenticate : évite la boîte de dialogue du navigateur.

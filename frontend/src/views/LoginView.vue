@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppIcon from '@/components/AppIcon.vue'
 
@@ -33,7 +33,7 @@ async function connexion() {
   chargement.value = true
   try {
     await auth.login(email.value.trim(), motDePasse.value)
-    router.push('/')
+    router.push(auth.role === 'CANDIDAT' ? '/candidats/espace' : '/')
   } catch (e) {
     erreur.value = e.message.includes('serveur') ? e.message : 'Email ou mot de passe incorrect.'
   } finally {
@@ -74,6 +74,7 @@ async function connexion() {
 
         <p v-if="erreur" class="erreur"><AppIcon name="alert" :size="16" /> {{ erreur }}</p>
         <button class="btn btn-block" :disabled="chargement">{{ chargement ? 'Connexion…' : 'Se connecter' }}</button>
+        <RouterLink class="candidate-link" to="/candidats/inscription">Créer un compte candidat</RouterLink>
 
         <div class="demo">
           <span class="label">Comptes de démonstration</span>
@@ -108,6 +109,7 @@ async function connexion() {
 .erreur { display: flex; align-items: center; gap: .5rem; color: var(--danger); background: var(--danger-50); padding: .65rem .85rem; border-radius: 10px; font-weight: 500; }
 .demo { margin-top: .6rem; padding: 1rem; border: 1px dashed #c9cce6; border-radius: 12px; display: flex; flex-direction: column; gap: .7rem; background: rgba(255, 255, 255, .6); }
 .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.candidate-link { text-align: center; color: var(--primary); font-weight: 600; }
 .demo-btn { display: flex; align-items: center; gap: .5rem; justify-content: center; padding: .55rem; border-radius: 9px; border: 1px solid var(--border); background: #fff; cursor: pointer; font-weight: 600; font-size: .86rem; transition: all .15s; }
 .demo-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-50); }
 @media (max-width: 900px) { .login { grid-template-columns: 1fr; } .hero { display: none; } }

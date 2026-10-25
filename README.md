@@ -4,11 +4,13 @@ Application Spring Boot (API) + Vue 3 (interface) pour exprimer, chiffrer, valid
 
 ## Lancer le projet
 
-1. **Base de données** : PostgreSQL, base `rh_db` (connexion dans `backend/src/main/resources/application.properties`).
-   - **Bloc 1** (demandes, schéma `public`) : Hibernate crée les tables (`ddl-auto=update`), `DataInitializer` insère les données de démo. Script de référence : `database/schema.sql`.
-   - **Bloc 2** (candidatures, schéma `mrtovo`) : `schema.sql` + `data.sql` sont exécutés à chaque démarrage mais ne créent que ce qui manque (données conservées). Pour repartir de zéro : `DROP SCHEMA mrtovo CASCADE;`.
-2. **Backend** : `cd backend && ./mvnw spring-boot:run` (port 8012). Les données de démo sont insérées au premier démarrage.
-3. **Frontend** : `cd frontend && npm install && npm run dev` puis ouvrir http://localhost:5173
+1. **Base de données** : démarrer le service PostgreSQL et créer une seule fois la base `rh_db` ainsi que l'utilisateur configuré dans `backend/src/main/resources/application.properties`. Spring Boot ne crée pas le serveur PostgreSQL ni la base elle-même.
+   - **Bloc 1** (schéma `public`) : Hibernate crée/met à jour les tables (`ddl-auto=update`) et `DataInitializer` ajoute les données de démonstration si les tables concernées sont vides.
+   - **Blocs 2 et 3** (schéma `mrtovo`) : `schema.sql` et `data.sql` sont exécutés au démarrage. Ils créent les tables manquantes et ajoutent les références de démonstration sans supprimer les données existantes.
+2. **Backend** : double-cliquer sur [`demarrer.bat`](./demarrer.bat), ou exécuter `backend/mvnw.cmd spring-boot:run` dans un terminal. L'API écoute sur le port 8080. La première compilation peut nécessiter un accès Internet pour Maven.
+3. **Frontend** : depuis le dossier `frontend`, exécuter `npm install` une première fois puis `npm run dev`, et ouvrir http://localhost:5173.
+
+Pour réinitialiser les données de l'application, arrêter le backend puis supprimer les schémas `public` et `mrtovo` de `rh_db` avec un client PostgreSQL. Au prochain lancement, Spring Boot recrée les tables et réinsère les données de démarrage. Cette opération efface toutes les données applicatives.
 
 ## Comptes de démonstration
 

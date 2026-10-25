@@ -1,12 +1,13 @@
 package com.mrtovo.backend.entity;
 
+import com.mrtovo.backend.model.Candidat;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "utilisateur")
+@Table(name = "utilisateur", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -33,4 +34,8 @@ public class Utilisateur {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_departement")
     private Departement departement;   // renseigné pour les managers
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_candidat", unique = true)
+    private Candidat candidat;
 }

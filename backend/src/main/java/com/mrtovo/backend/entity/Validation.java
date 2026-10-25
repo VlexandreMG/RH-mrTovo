@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /** Chaque avis est une ligne distincte : l'historique n'est jamais écrasé. */
 @Entity
-@Table(name = "validation")
+@Table(name = "validation", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor

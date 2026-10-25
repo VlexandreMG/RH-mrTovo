@@ -1,9 +1,16 @@
 package com.mrtovo.backend.controller;
 
 import com.mrtovo.backend.dto.*;
+import com.mrtovo.backend.service.CvStorageService;
 import com.mrtovo.backend.service.RecrutementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +31,20 @@ public class CandidatureController {
     @GetMapping("/acceptees")
     public List<CandidatureDTO> acceptees() {
         return service.candidaturesAcceptees();
+    }
+
+    @GetMapping("/{id}/cv")
+    @PreAuthorize("hasRole('RH')")
+    public ResponseEntity<Resource> cv(@PathVariable Long id) {
+        CvStorageService.StoredCv cv = service.cvCandidature(id);
+        String extension = cv.mediaType().equals(MediaType.APPLICATION_PDF) ? "pdf" : "docx";
+        return ResponseEntity.ok()
+                .contentType(cv.mediaType())
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("CV-candidature-" + id + "." + extension)
+                                .build().toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(cv.resource());
     }
 
     @GetMapping("/{id}")

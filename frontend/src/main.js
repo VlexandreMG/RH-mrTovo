@@ -1,4 +1,4 @@
-import './assets/bloc3.css'
+import './assets/recrutement.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

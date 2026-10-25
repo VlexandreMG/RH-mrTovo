@@ -1,7 +1,9 @@
 package com.mrtovo.backend.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Entity
@@ -12,14 +14,18 @@ public class Candidat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @NotBlank
+    @Size(max = 255)
     private String nom;
+    @NotBlank
+    @Size(max = 255)
     private String prenom;
-    @Pattern(
-        regexp = "^[A-Za-z0-9._%+-]+@(gmail\\.com|proton\\.me|yahoo\\.[a-z]{2,})$", 
-        message = "L'adresse email doit être un domaine valide (@gmail.com, @proton.me, @yahoo...)"
-    )
-    @Column(nullable = false, unique = true)
+    @NotBlank
+    @Email
+    @Size(max = 255)
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
+    @Size(max = 50)
     private String telephone;
     private String fichierCvUrl;
 }

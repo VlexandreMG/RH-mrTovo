@@ -15,7 +15,7 @@ const menu = computed(() => [
   ...(auth.role === 'MANAGER' ? [{ to: '/demandes/nouvelle', label: 'Nouvelle demande', icon: 'plus' }] : []),
   { to: '/grille-salariale', label: 'Grille salariale', icon: 'coins' },
   ...(auth.role === 'RH' ? [{ to: '/offres', label: 'Candidatures', icon: 'briefcase' }] : []),
-  { to: '/bloc3/dashboard', label: 'Bloc 3', icon: 'briefcase' }
+  { to: '/bloc3/dashboard', label: 'Recrutement', icon: 'briefcase' }
 ])
 
 function isActive(m) {

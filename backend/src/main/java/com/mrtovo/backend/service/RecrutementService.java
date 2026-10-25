@@ -4,15 +4,25 @@ import com.mrtovo.backend.dto.CandidatureDTO;
 import com.mrtovo.backend.dto.OffreDTO;
 import com.mrtovo.backend.exception.RegleMetierException;
 import com.mrtovo.backend.exception.RessourceIntrouvableException;
+import com.mrtovo.backend.entity.RoleUtilisateur;
+import com.mrtovo.backend.entity.Utilisateur;
 import com.mrtovo.backend.model.*;
+import com.mrtovo.backend.model.Candidat;
 import com.mrtovo.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Parcours d'une candidature :
@@ -32,6 +42,9 @@ public class RecrutementService {
     private final StatutCandidatureRepository statutCandidatureRepo;
     private final StatutEvaluationRepository statutEvaluationRepo;
     private final StatutEntretienRepository statutEntretienRepo;
+    private final CandidatRepository candidatRepo;
+    private final UtilisateurRepository utilisateurRepo;
+    private final CvStorageService cvStorageService;
 
     // ------------------------------------------------------------------ Lecture
 
@@ -44,6 +57,78 @@ public class RecrutementService {
     public OffreDTO getOffre(Long id) {
         return versDTO(offreRepo.findById(id)
                 .orElseThrow(() -> new RessourceIntrouvableException("Offre #" + id + " introuvable")));
+    }
+
+    @Transactional(readOnly = true)
+    public List<OffreDTO> listerOffresPubliques() {
+        return offreRepo.findByStatutOffreEmploiIdOrderByDatePublicationDesc(Statuts.OffreEmploi.OUVERTE)
+                .stream().map(this::versDTO).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public OffreDTO getOffrePublique(Long id) {
+        OffreEmploi offre = offreRepo.findById(id)
+                .filter(candidate -> candidate.getStatutOffreEmploi() != null
+                        && candidate.getStatutOffreEmploi().getId() == Statuts.OffreEmploi.OUVERTE)
+                .orElseThrow(() -> new RessourceIntrouvableException("Offre introuvable ou non ouverte."));
+        return versDTO(offre);
+    }
+
+    public CandidatureDTO postuler(Long offreId, String nom, String prenom, String email,
+                                   String telephone, MultipartFile cv) {
+        OffreEmploi offre = offreRepo.findById(offreId)
+                .filter(candidate -> candidate.getStatutOffreEmploi() != null
+                        && candidate.getStatutOffreEmploi().getId() == Statuts.OffreEmploi.OUVERTE)
+                .orElseThrow(() -> new RessourceIntrouvableException("Offre introuvable ou non ouverte."));
+
+        String emailNormalise = email.trim().toLowerCase(java.util.Locale.ROOT);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_CANDIDAT"))
+                && !authentication.getName().equalsIgnoreCase(emailNormalise)) {
+            throw new ResponseStatusException(FORBIDDEN,
+                    "Connectez-vous avec l'adresse e-mail de votre compte candidat.");
+        }
+
+        Utilisateur compte = utilisateurRepo.findByEmailIgnoreCase(emailNormalise).orElse(null);
+        if (compte != null && compte.getRole() == RoleUtilisateur.CANDIDAT
+                && (authentication == null || !authentication.isAuthenticated()
+                || !authentication.getName().equalsIgnoreCase(emailNormalise)
+                || authentication.getAuthorities().stream()
+                .noneMatch(authority -> authority.getAuthority().equals("ROLE_CANDIDAT")))) {
+            throw new ResponseStatusException(FORBIDDEN,
+                    "Connectez-vous à votre compte candidat pour postuler avec cette adresse.");
+        }
+
+        Candidat candidat = candidatRepo.findByEmailIgnoreCase(emailNormalise).orElseGet(Candidat::new);
+        if (candidat.getId() != null
+                && candidatureRepo.existsByCandidatIdAndOffreEmploiId(candidat.getId(), offreId)) {
+            throw new RegleMetierException("Une candidature existe déjà pour cette adresse et cette offre.");
+        }
+
+        if (compte == null || compte.getRole() != RoleUtilisateur.CANDIDAT) {
+            candidat.setNom(nom.trim());
+            candidat.setPrenom(prenom.trim());
+            candidat.setEmail(emailNormalise);
+            candidat.setTelephone(telephone == null || telephone.isBlank() ? null : telephone.trim());
+        }
+        candidat = candidatRepo.save(candidat);
+        candidat.setFichierCvUrl(cvStorageService.enregistrer(cv));
+
+        Candidature candidature = new Candidature();
+        candidature.setCandidat(candidat);
+        candidature.setOffreEmploi(offre);
+        candidature.setDateCandidature(LocalDate.now());
+        candidature.setStatutCandidature(
+                statutCandidatureRepo.findById(Statuts.Candidature.A_TRAITER).orElseThrow());
+        candidatureRepo.save(candidature);
+        return versDTO(candidature);
+    }
+
+    @Transactional(readOnly = true)
+    public CvStorageService.StoredCv cvCandidature(Long candidatureId) {
+        Candidature candidature = chargerCandidature(candidatureId);
+        return cvStorageService.charger(candidature.getCandidat().getFichierCvUrl());
     }
 
     @Transactional(readOnly = true)
@@ -196,14 +281,20 @@ public class RecrutementService {
         CandidatureDTO.EntretienDTO entretienDTO = null;
         if (test != null) {
             testDTO = new CandidatureDTO.TestDTO(test.getId(), test.getNoteTest(),
-                    test.getStatutEvaluation().getId(), test.getStatutEvaluation().getLibelle());
+                    test.getStatutEvaluation() == null ? null : test.getStatutEvaluation().getId(),
+                    test.getStatutEvaluation() == null ? null : test.getStatutEvaluation().getLibelle());
             entretienDTO = entretienRepo.findFirstByEvaluationIdOrderByIdDesc(test.getId())
                     .map(e -> new CandidatureDTO.EntretienDTO(e.getId(), e.getDateEntretien(), e.getLieu(),
-                            e.getCommentaire(), e.getStatutEntretien().getId(), e.getStatutEntretien().getLibelle()))
+                            e.getCommentaire(),
+                            e.getStatutEntretien() == null ? null : e.getStatutEntretien().getId(),
+                            e.getStatutEntretien() == null ? null : e.getStatutEntretien().getLibelle()))
                     .orElse(null);
         }
+        String cvUrl = p.getFichierCvUrl() == null
+                ? null
+                : "/candidatures/" + c.getId() + "/cv";
         return new CandidatureDTO(c.getId(), c.getOffreEmploi().getId(), c.getOffreEmploi().getTitre(),
-                p.getId(), p.getNom(), p.getPrenom(), p.getEmail(), p.getTelephone(), p.getFichierCvUrl(),
+                p.getId(), p.getNom(), p.getPrenom(), p.getEmail(), p.getTelephone(), cvUrl,
                 c.getDateCandidature(), c.getStatutCandidature().getId(), c.getStatutCandidature().getLibelle(),
                 testDTO, entretienDTO);
     }

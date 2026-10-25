@@ -7,7 +7,7 @@ import lombok.Setter;
 
 /** Niveau de qualification : Junior, Confirmé, Senior... */
 @Entity
-@Table(name = "niveau_poste")
+@Table(name = "niveau_poste", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor
