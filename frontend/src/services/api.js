@@ -1,6 +1,56 @@
-import { apiGet, apiPost, apiPut } from '@/api/http'
+import { apiDelete, apiGet, apiGetBlob, apiPost, apiPut } from '@/api/http'
 
-// Passe par le même client que le Bloc 1 : même URL (port 8012) et même authentification.
+function withParams(path, params = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value !== null && value !== undefined && value !== ''),
+  ).toString()
+  return query ? `${path}?${query}` : path
+}
+
+const asResponse = (data) => ({ data })
+
+// ==================== Contrat ====================
+export const contratApi = {
+  async getAll(params = {}) {
+    return asResponse(await apiGet(withParams('/contrat', params)))
+  },
+  async getById(id) {
+    return asResponse(await apiGet(`/contrat/${id}`))
+  },
+  async create(contrat) {
+    return asResponse(await apiPost('/contrat', contrat))
+  },
+  async update(id, contrat) {
+    return asResponse(await apiPut(`/contrat/${id}`, contrat))
+  },
+  async delete(id) {
+    return asResponse(await apiDelete(`/contrat/${id}`))
+  },
+  async downloadPdf(id) {
+    return asResponse(await apiGetBlob(`/contrat/${id}/pdf`))
+  },
+}
+
+// ==================== TypeContrat ====================
+export const typeContratApi = {
+  async getAll() {
+    return asResponse(await apiGet('/typeContrat'))
+  },
+}
+
+// ==================== StatutContrat ====================
+export const statutContratApi = {
+  async getAll() {
+    return asResponse(await apiGet('/statutContrat'))
+  },
+}
+
+// ==================== Employee ====================
+export const employeeApi = {
+  async getAll() {
+    return asResponse(await apiGet('/employee'))
+  },
+}
 
 /** Message d'erreur lisible renvoyé par le backend (champ "message"). */
 export function messageErreur(error) {

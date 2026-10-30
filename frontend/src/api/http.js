@@ -38,6 +38,7 @@ async function request(method, path, body, multipart = false) {
 export const apiGet = (path) => request('GET', path)
 export const apiPost = (path, body = {}) => request('POST', path, body)
 export const apiPut = (path, body = {}) => request('PUT', path, body)
+export const apiDelete = (path) => request('DELETE', path)
 export const apiPostMultipart = (path, body) => request('POST', path, body, true)
 
 export async function apiGetBlob(path) {
