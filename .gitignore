@@ -16,6 +16,8 @@ Thumbs.db
 # Backend (Spring Boot / Java / Maven)
 # ==========================================
 backend/target/
+backend/uploads/cv/
+uploads/cv/
 backend/*.jar
 backend/*.war
 backend/*.ear
@@ -37,6 +39,7 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/pnpm-debug.log*
+frontend-v2
 
 # Config local ou variables sensibles
 .env

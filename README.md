@@ -1,0 +1,41 @@
+# Expression du besoin en personnel
+
+Application Spring Boot (API) + Vue 3 (interface) pour exprimer, chiffrer, valider et ouvrir des recrutements.
+
+## Lancer le projet
+
+1. **Base de données** : démarrer le service PostgreSQL et créer une seule fois la base `rh_db` ainsi que l'utilisateur configuré dans `backend/src/main/resources/application.properties`. Spring Boot ne crée pas le serveur PostgreSQL ni la base elle-même.
+   - **Bloc 1** (schéma `public`) : Hibernate crée/met à jour les tables (`ddl-auto=update`) et `DataInitializer` ajoute les données de démonstration si les tables concernées sont vides.
+   - **Blocs 2 et 3** (schéma `mrtovo`) : `schema.sql` et `data.sql` sont exécutés au démarrage. Ils créent les tables manquantes et ajoutent les références de démonstration sans supprimer les données existantes.
+2. **Backend** : double-cliquer sur [`demarrer.bat`](./demarrer.bat), ou exécuter `backend/mvnw.cmd spring-boot:run` dans un terminal. L'API écoute sur le port 8080. La première compilation peut nécessiter un accès Internet pour Maven.
+3. **Frontend** : depuis le dossier `frontend`, exécuter `npm install` une première fois puis `npm run dev`, et ouvrir http://localhost:5173.
+
+Pour réinitialiser les données de l'application, arrêter le backend puis supprimer les schémas `public` et `mrtovo` de `rh_db` avec un client PostgreSQL. Au prochain lancement, Spring Boot recrée les tables et réinsère les données de démarrage. Cette opération efface toutes les données applicatives.
+
+## Comptes de démonstration
+
+| Rôle | Email | Mot de passe |
+|---|---|---|
+| Manager (un par département) | manager.informatique@rh.com, manager.rh@rh.com, manager.finance@rh.com, manager.direction@rh.com, manager.commercial@rh.com | manager123 |
+| RH | rh@rh.com | rh123 |
+| Finance | finance@rh.com | finance123 |
+| Direction | direction@rh.com | direction123 |
+
+## Règles métier
+
+- **Poste** : catalogue indépendant des départements ; chaque demande porte son département.
+- **Type de besoin** (`CREATION` / `REMPLACEMENT`) ≠ **motif** (texte libre : pourquoi on a besoin des personnes).
+- **Effectifs par niveau** : une demande contient des lignes (ex. 2 juniors + 1 senior).
+- **Grille salariale** : par poste **et** niveau, avec période de validité.
+  - Création : le RH définit une nouvelle fourchette (l'ancienne est clôturée, l'historique est gardé) ou reprend celle en vigueur.
+  - Remplacement : la grille existante est utilisée, aucune nouvelle fourchette.
+- **Budget** : le manager saisit un budget total demandé ; le RH saisit le coût estimé par personne (dans la fourchette de la grille) ; le coût total est calculé et comparé au budget.
+- **Workflow** : RH → Finance → Direction. RH et Finance donnent un **avis** (même défavorable, la demande continue) ; la Direction a le **dernier mot** sur la demande entière. Seul le RH ouvre le recrutement, uniquement si la demande est autorisée.
+- **Historique** : chaque avis est une ligne distincte dans `validation`, jamais écrasée.
+
+## Bloc 2 : suivi des candidatures
+
+Menu **Candidatures** (rôle RH) : liste des offres, puis tableau kanban par offre.
+Chaque demande crée son offre d'emploi : **En attente** à la création, **Fermée** si la Direction refuse, **Ouverte** à l'ouverture du recrutement.
+Parcours d'une candidature : À traiter → (présélection) Test → (note /20 + décision) Attente entretien → Accepté / Refusé.
+Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.java` et `frontend/src/services/api.js`.
