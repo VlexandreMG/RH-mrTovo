@@ -29,6 +29,7 @@ public class OffreEmploi {
 
     /** Demande de recrutement (Bloc 1) à l'origine de l'offre ; null pour une offre saisie à la main. */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_demande", unique = true)
+    @JoinColumn(name = "id_demande", unique = true,
+            foreignKey = @ForeignKey(name = "fk_offre_emploi_demande_public"))
     private DemandeRecrutement demande;
 }

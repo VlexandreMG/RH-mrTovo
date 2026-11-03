@@ -4,5 +4,6 @@ public enum RoleUtilisateur {
     MANAGER,
     RH,
     FINANCE,
-    DIRECTION
+    DIRECTION,
+    CANDIDAT
 }

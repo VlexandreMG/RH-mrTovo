@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * Le manager remplit niveau + effectif ; le RH renseigne ensuite la grille et le coût estimé.
  */
 @Entity
-@Table(name = "ligne_demande")
+@Table(name = "ligne_demande", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor

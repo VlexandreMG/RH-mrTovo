@@ -31,6 +31,36 @@ SELECT setval('statut_offre_emploi_id_seq', (SELECT MAX(id) FROM statut_offre_em
 SELECT setval('statut_evaluation_id_seq', (SELECT MAX(id) FROM statut_evaluation));
 SELECT setval('statut_entretien_id_seq', (SELECT MAX(id) FROM statut_entretien));
 
+-- Referentiels de recrutement partages avec les ecrans de propositions.
+INSERT INTO departement (nom, code)
+VALUES ('Informatique', 'INFO')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO poste (titre, description, departement_id, statut)
+SELECT 'Developpeur Java / Spring Boot',
+       'Developpement backend Java / Spring Boot',
+       departement.id,
+       'ACTIF'
+FROM departement
+WHERE departement.code = 'INFO'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM poste
+      WHERE poste.titre = 'Developpeur Java / Spring Boot'
+  );
+
+INSERT INTO grille_salariale (poste_id, niveau, salaire_min, salaire_max, date_debut)
+SELECT poste.id, 'CONFIRME', 3000000, 4500000, DATE '2025-01-01'
+FROM poste
+WHERE poste.titre = 'Developpeur Java / Spring Boot'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO grille_salariale (poste_id, niveau, salaire_min, salaire_max, date_debut)
+SELECT poste.id, 'SENIOR', 4500000, 6000000, DATE '2025-01-01'
+FROM poste
+WHERE poste.titre = 'Developpeur Java / Spring Boot'
+ON CONFLICT DO NOTHING;
+
 -- ==========================================
 -- 2. OFFRE D'EMPLOI
 -- ==========================================

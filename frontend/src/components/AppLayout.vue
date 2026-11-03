@@ -14,7 +14,8 @@ const menu = computed(() => [
   { to: '/demandes', label: 'Demandes', icon: 'list' },
   ...(auth.role === 'MANAGER' ? [{ to: '/demandes/nouvelle', label: 'Nouvelle demande', icon: 'plus' }] : []),
   { to: '/grille-salariale', label: 'Grille salariale', icon: 'coins' },
-  ...(auth.role === 'RH' ? [{ to: '/offres', label: 'Candidatures', icon: 'briefcase' }] : [])
+  ...(auth.role === 'RH' ? [{ to: '/offres', label: 'Candidatures', icon: 'briefcase' }] : []),
+  { to: '/bloc3/dashboard', label: 'Recrutement', icon: 'briefcase' }
 ])
 
 function isActive(m) {

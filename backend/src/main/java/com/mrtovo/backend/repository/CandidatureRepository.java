@@ -8,4 +8,5 @@ public interface CandidatureRepository extends JpaRepository<Candidature, Long> 
     List<Candidature> findByOffreEmploiIdOrderByDateCandidatureAscIdAsc(Long offreEmploiId);
     List<Candidature> findByStatutCandidatureIdOrderByIdAsc(Long statutId);
     long countByOffreEmploiId(Long offreEmploiId);
+    boolean existsByCandidatIdAndOffreEmploiId(Long candidatId, Long offreEmploiId);
 }

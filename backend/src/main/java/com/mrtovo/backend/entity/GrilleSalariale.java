@@ -10,7 +10,7 @@ import java.time.LocalDate;
 
 /** Fourchette salariale mensuelle de référence pour un poste à un niveau donné, avec période de validité. */
 @Entity
-@Table(name = "grille_salariale", uniqueConstraints = {
+@Table(name = "grille_salariale", schema = "public", uniqueConstraints = {
         @UniqueConstraint(name = "uk_grille_poste_niveau_debut", columnNames = {"id_poste", "id_niveau", "date_debut"})
 })
 @Getter

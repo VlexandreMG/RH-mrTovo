@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { apiGetBlob } from '@/api/http'
 import {
   candidaturesApi, entretiensApi, messageErreur,
   STATUT, STATUT_ENTRETIEN, STATUT_TEST,
@@ -32,6 +33,21 @@ const motifRefus = computed(() => {
 const fmtDate = (d) => new Date(d).toLocaleDateString('fr-FR')
 const fmtDateHeure = (d) =>
   new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+
+async function telechargerCv() {
+  erreur.value = ''
+  try {
+    const fichier = await apiGetBlob(c.value.fichierCvUrl)
+    const url = URL.createObjectURL(fichier)
+    const lien = document.createElement('a')
+    lien.href = url
+    lien.download = `CV-candidature-${c.value.id}`
+    lien.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    erreur.value = messageErreur(e)
+  }
+}
 
 /** Exécute un appel API, puis remonte la candidature mise à jour au tableau. */
 async function agir(appel, confirmation) {
@@ -93,7 +109,7 @@ const annulerEntretien = () =>
   <article class="card" :class="{ busy: enCours }">
     <header>
       <strong>{{ nom }}</strong>
-      <a v-if="c.fichierCvUrl" :href="c.fichierCvUrl" target="_blank" rel="noopener" class="cv">CV</a>
+      <button v-if="c.fichierCvUrl" type="button" class="cv" @click="telechargerCv">Télécharger le CV</button>
     </header>
     <div class="meta muted">
       <div>{{ c.email }}</div>
@@ -184,7 +200,7 @@ const annulerEntretien = () =>
 }
 .card.busy { opacity: 0.6; }
 header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.cv { font-size: 12px; color: var(--primary); }
+.cv { border: 0; padding: 0; background: none; font-size: 12px; color: var(--primary); cursor: pointer; }
 .meta { font-size: 12px; word-break: break-all; }
 .bloc { display: flex; flex-direction: column; gap: 6px; }
 .row { display: flex; gap: 6px; }
