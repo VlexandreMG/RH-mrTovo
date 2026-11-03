@@ -14,4 +14,6 @@ public interface EmployeEmbaucheRepository extends JpaRepository<EmployeEmbauche
     Optional<EmployeEmbauche> findByCandidatId(Long candidatId);
 
     Optional<EmployeEmbauche> findByMatricule(String matricule);
+
+    Optional<EmployeEmbauche> findByEmailIgnoreCase(String email);
 }

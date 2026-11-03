@@ -70,6 +70,37 @@ public class EmployeEmbauche {
     @Column(nullable = false)
     private StatutEmploye statut = StatutEmploye.EN_PERIODE_DESSAI;
 
+    // ----- Bloc 5 : identite complete du dossier administratif -----
+
+    @Column(name = "date_naissance")
+    private LocalDate dateNaissance;
+
+    @Column(name = "lieu_naissance")
+    private String lieuNaissance;
+
+    @Column(length = 1)
+    private String sexe;
+
+    private String nationalite;
+
+    @Column(name = "numero_cin")
+    private String numeroCin;
+
+    @Column(name = "numero_cnaps")
+    private String numeroCnaps;
+
+    @Column(name = "situation_familiale")
+    private String situationFamiliale;
+
+    @Column(name = "nombre_enfants")
+    private Integer nombreEnfants;
+
+    @Column(name = "contact_urgence_nom")
+    private String contactUrgenceNom;
+
+    @Column(name = "contact_urgence_telephone")
+    private String contactUrgenceTelephone;
+
     public Long getId() {
         return id;
     }
@@ -196,6 +227,86 @@ public class EmployeEmbauche {
 
     public void setStatut(StatutEmploye statut) {
         this.statut = statut;
+    }
+
+    public LocalDate getDateNaissance() {
+        return dateNaissance;
+    }
+
+    public void setDateNaissance(LocalDate dateNaissance) {
+        this.dateNaissance = dateNaissance;
+    }
+
+    public String getLieuNaissance() {
+        return lieuNaissance;
+    }
+
+    public void setLieuNaissance(String lieuNaissance) {
+        this.lieuNaissance = lieuNaissance;
+    }
+
+    public String getSexe() {
+        return sexe;
+    }
+
+    public void setSexe(String sexe) {
+        this.sexe = sexe;
+    }
+
+    public String getNationalite() {
+        return nationalite;
+    }
+
+    public void setNationalite(String nationalite) {
+        this.nationalite = nationalite;
+    }
+
+    public String getNumeroCin() {
+        return numeroCin;
+    }
+
+    public void setNumeroCin(String numeroCin) {
+        this.numeroCin = numeroCin;
+    }
+
+    public String getNumeroCnaps() {
+        return numeroCnaps;
+    }
+
+    public void setNumeroCnaps(String numeroCnaps) {
+        this.numeroCnaps = numeroCnaps;
+    }
+
+    public String getSituationFamiliale() {
+        return situationFamiliale;
+    }
+
+    public void setSituationFamiliale(String situationFamiliale) {
+        this.situationFamiliale = situationFamiliale;
+    }
+
+    public Integer getNombreEnfants() {
+        return nombreEnfants;
+    }
+
+    public void setNombreEnfants(Integer nombreEnfants) {
+        this.nombreEnfants = nombreEnfants;
+    }
+
+    public String getContactUrgenceNom() {
+        return contactUrgenceNom;
+    }
+
+    public void setContactUrgenceNom(String contactUrgenceNom) {
+        this.contactUrgenceNom = contactUrgenceNom;
+    }
+
+    public String getContactUrgenceTelephone() {
+        return contactUrgenceTelephone;
+    }
+
+    public void setContactUrgenceTelephone(String contactUrgenceTelephone) {
+        this.contactUrgenceTelephone = contactUrgenceTelephone;
     }
 
     public String getNomComplet() {

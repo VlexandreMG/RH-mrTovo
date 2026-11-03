@@ -97,6 +97,18 @@ const router = createRouter({
           meta: { roles: ['RH'] }
         },
         {
+          path: 'bloc5/dossiers',
+          name: 'bloc5-dossiers',
+          component: () => import('@/views/EmployesView.vue'),
+          meta: { roles: ['RH'] }
+        },
+        {
+          path: 'bloc5/dossiers/:id',
+          name: 'bloc5-dossier',
+          component: () => import('@/views/DossierSalarieView.vue'),
+          meta: { roles: ['RH'] }
+        },
+        {
           path: 'bloc3/contrats',
           name: 'bloc3-contrats',
           component: () => import('@/views/ContratsView.vue'),

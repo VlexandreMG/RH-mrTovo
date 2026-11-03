@@ -1,18 +1,38 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useRecrutementStore } from '@/stores/recrutement'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import { dossiersApi } from '@/api/dossiers'
+import { date } from '@/utils/format'
 import StatutBadge from '@/components/RecrutementStatutBadge.vue'
 
-const store = useRecrutementStore()
-const employeOuvert = ref(null)
+const dossiers = ref([])
+const chargement = ref(false)
+const erreur = ref('')
+const recherche = ref('')
 
-onMounted(() => store.chargerEmployes())
+const dossiersFiltres = computed(() => {
+  const terme = recherche.value.trim().toLowerCase()
+  if (!terme) return dossiers.value
+  return dossiers.value.filter((d) =>
+    [d.matricule, d.nom, d.prenom, d.email, d.posteTitre, d.departementNom]
+      .filter(Boolean)
+      .some((valeur) => valeur.toLowerCase().includes(terme))
+  )
+})
 
-const formatDate = (valeur) => (valeur ? new Date(valeur).toLocaleDateString('fr-FR') : '—')
-
-function basculer(employe) {
-  employeOuvert.value = employeOuvert.value === employe.id ? null : employe.id
+async function charger() {
+  chargement.value = true
+  erreur.value = ''
+  try {
+    dossiers.value = await dossiersApi.lister()
+  } catch (e) {
+    erreur.value = e.message
+  } finally {
+    chargement.value = false
+  }
 }
+
+onMounted(charger)
 </script>
 
 <template>
@@ -21,17 +41,20 @@ function basculer(employe) {
       <div>
         <h1>Dossiers salariés</h1>
         <p>
-          Créés automatiquement à l'acceptation d'une proposition : matricule, contrat et affectation
-          initiale.
+          Référentiel central : identité, situation professionnelle, contrats, carrière et pièces
+          administratives de chaque salarié. Accès réservé au RH et tracé.
         </p>
       </div>
-      <button class="b3-btn" :disabled="store.loading" @click="store.chargerEmployes()">Actualiser</button>
+      <button class="b3-btn" :disabled="chargement" @click="charger">Actualiser</button>
     </header>
 
-    <div v-if="store.error" class="b3-alert is-error">{{ store.error }}</div>
+    <div v-if="erreur" class="b3-alert is-error">{{ erreur }}</div>
 
     <div class="b3-card">
-      <h2>Effectif embauché</h2>
+      <div class="entete-liste">
+        <h2>Effectif ({{ dossiersFiltres.length }})</h2>
+        <input v-model="recherche" class="recherche" type="search" placeholder="Matricule, nom, poste…" />
+      </div>
       <div class="b3-table-wrapper">
         <table class="b3-table">
           <thead>
@@ -40,104 +63,64 @@ function basculer(employe) {
               <th>Nom</th>
               <th>Poste</th>
               <th>Département</th>
-              <th>Embauche</th>
-              <th>Fin de période d’essai</th>
+              <th>Entrée</th>
               <th>Statut</th>
+              <th>Documents</th>
+              <th>Alertes</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="employe in store.employes" :key="employe.id">
-              <td><strong>{{ employe.matricule }}</strong></td>
+            <tr v-for="d in dossiersFiltres" :key="d.id">
+              <td><strong>{{ d.matricule }}</strong></td>
               <td>
-                {{ employe.prenom }} {{ employe.nom }}
-                <div class="b3-muted" style="font-size: 0.78rem">{{ employe.email }}</div>
+                {{ d.prenom }} {{ d.nom }}
+                <div class="b3-muted" style="font-size: 0.78rem">{{ d.email }}</div>
               </td>
-              <td>{{ employe.posteTitre ?? '—' }}</td>
-              <td>{{ employe.departementNom ?? '—' }}</td>
-              <td>{{ formatDate(employe.dateEmbauche) }}</td>
-              <td>{{ formatDate(employe.dateFinPeriodeEssai) }}</td>
-              <td><StatutBadge :statut="employe.statut" /></td>
+              <td>{{ d.posteTitre ?? '—' }}</td>
+              <td>{{ d.departementNom ?? '—' }}</td>
+              <td>{{ date(d.dateEntree) }}</td>
+              <td><StatutBadge :statut="d.statut" /></td>
               <td>
-                <button class="b3-btn" @click="basculer(employe)">
-                  {{ employeOuvert === employe.id ? 'Masquer' : 'Détail' }}
-                </button>
+                {{ d.nbDocuments }}
+                <StatutBadge v-if="d.nbDocumentsExpires" statut="EXPIRE" />
+                <StatutBadge v-else-if="d.nbDocumentsBientotExpires" statut="EXPIRE_BIENTOT" />
+              </td>
+              <td>
+                <span v-if="d.nbAlertes" class="b3-badge is-warning">{{ d.nbAlertes }}</span>
+                <span v-else class="b3-muted">—</span>
+              </td>
+              <td>
+                <RouterLink :to="`/bloc5/dossiers/${d.id}`" class="b3-btn">Ouvrir le dossier</RouterLink>
               </td>
             </tr>
-            <tr v-if="!store.employes.length">
-              <td colspan="8" class="b3-empty">
-                Aucun dossier salarié : acceptez une proposition pour le générer automatiquement.
+            <tr v-if="!dossiersFiltres.length">
+              <td colspan="9" class="b3-empty">
+                {{ dossiers.length ? 'Aucun dossier ne correspond à la recherche.'
+                  : 'Aucun dossier salarié : acceptez une proposition pour le générer automatiquement.' }}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-
-    <div v-for="employe in store.employes.filter((item) => item.id === employeOuvert)" :key="employe.id" class="b3-card">
-      <h2>{{ employe.matricule }} — {{ employe.prenom }} {{ employe.nom }}</h2>
-      <div class="b3-grid b3-grid-2">
-        <div>
-          <h3>Contrats</h3>
-          <div class="b3-table-wrapper">
-            <table class="b3-table">
-              <thead>
-                <tr>
-                  <th>Référence</th>
-                  <th>Type</th>
-                  <th>Début</th>
-                  <th>Fin</th>
-                  <th>Salaire</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="contrat in employe.contrats" :key="contrat.id">
-                  <td>{{ contrat.reference }}</td>
-                  <td>{{ contrat.typeContrat }}</td>
-                  <td>{{ formatDate(contrat.dateDebut) }}</td>
-                  <td>{{ formatDate(contrat.dateFin) }}</td>
-                  <td class="b3-money">{{ contrat.salaire }}</td>
-                  <td><StatutBadge :statut="contrat.statutContrat" /></td>
-                </tr>
-                <tr v-if="!employe.contrats.length">
-                  <td colspan="6" class="b3-empty">Aucun contrat.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div>
-          <h3>Affectations</h3>
-          <div class="b3-table-wrapper">
-            <table class="b3-table">
-              <thead>
-                <tr>
-                  <th>Poste</th>
-                  <th>Département</th>
-                  <th>Type</th>
-                  <th>Début</th>
-                  <th>Fin</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="affectation in employe.affectations" :key="affectation.id">
-                  <td>{{ affectation.posteTitre ?? '—' }}</td>
-                  <td>{{ affectation.departementNom ?? '—' }}</td>
-                  <td>{{ affectation.type }}</td>
-                  <td>{{ formatDate(affectation.dateDebut) }}</td>
-                  <td>{{ formatDate(affectation.dateFin) }}</td>
-                  <td><StatutBadge :statut="affectation.statut" /></td>
-                </tr>
-                <tr v-if="!employe.affectations.length">
-                  <td colspan="6" class="b3-empty">Aucune affectation.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
   </section>
 </template>
+
+<style scoped>
+.entete-liste {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.recherche {
+  border: 1px solid var(--b3-border);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.86rem;
+  min-width: 220px;
+}
+</style>

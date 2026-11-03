@@ -31,6 +31,11 @@ const styles = {
   RUPTURE: 'is-danger',
   SORTI: '',
   SUSPENDU: 'is-warning',
+  // Bloc 5 : validite des documents
+  VALIDE: 'is-success',
+  EXPIRE_BIENTOT: 'is-warning',
+  EXPIRE: 'is-danger',
+  PERMANENT: 'is-info',
 }
 
 const libelles = {
@@ -41,6 +46,10 @@ const libelles = {
   CONTRE_PROPOSITION: 'Contre-proposition',
   SUPERSEDEE: 'Remplacée',
   EXPIREE: 'Expirée',
+  VALIDE: 'Valide',
+  EXPIRE_BIENTOT: 'Expire bientôt',
+  EXPIRE: 'Expiré',
+  PERMANENT: 'Permanent',
 }
 
 const classe = computed(() => styles[props.statut] ?? '')

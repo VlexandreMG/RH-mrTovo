@@ -41,6 +41,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/public/**").permitAll()
                         .requestMatchers("/api/candidat/**").hasRole("CANDIDAT")
+                        // Bloc 5 : dossier administratif confidentiel, reserve au RH.
+                        .requestMatchers("/api/bloc5/**").hasRole("RH")
                         .requestMatchers("/api/**").hasAnyRole("MANAGER", "RH", "FINANCE", "DIRECTION")
                         .anyRequest().authenticated()
                 )

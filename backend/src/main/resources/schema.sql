@@ -304,6 +304,49 @@ CREATE TABLE IF NOT EXISTS mrtovo.affectation (
     statut VARCHAR(30) NOT NULL DEFAULT 'ACTIVE'
 );
 
+-- ==========================================
+-- 5. BLOC 5 : DOSSIER ADMINISTRATIF DU SALARIE
+-- ==========================================
+-- Identite complete du salarie (colonnes ajoutees a la table existante du Bloc 3).
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS date_naissance DATE;
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS lieu_naissance VARCHAR(150);
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS sexe VARCHAR(1);
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS nationalite VARCHAR(100);
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS numero_cin VARCHAR(50);
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS numero_cnaps VARCHAR(50);
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS situation_familiale VARCHAR(30);
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS nombre_enfants INTEGER;
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS contact_urgence_nom VARCHAR(255);
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS contact_urgence_telephone VARCHAR(50);
+
+-- Pieces administratives du salarie, avec leur periode de validite.
+CREATE TABLE IF NOT EXISTS mrtovo.document_salarie (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    type_document VARCHAR(40) NOT NULL,
+    libelle VARCHAR(255) NOT NULL,
+    numero VARCHAR(100),
+    date_emission DATE,
+    date_expiration DATE,
+    fichier_cle VARCHAR(100),
+    nom_fichier_original VARCHAR(255),
+    content_type VARCHAR(100),
+    date_depot TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    depose_par VARCHAR(150) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_document_salarie_employe ON mrtovo.document_salarie(employe_id);
+
+-- Journal d'audit : une ligne par consultation ou modification, jamais mise a jour ni supprimee.
+CREATE TABLE IF NOT EXISTS mrtovo.journal_audit (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    action VARCHAR(40) NOT NULL,
+    auteur VARCHAR(150) NOT NULL,
+    details TEXT,
+    date_action TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_journal_audit_employe ON mrtovo.journal_audit(employe_id, date_action DESC);
+
 -- Contraintes de domaine re-appliquees pour les bases deja initialisees.
 ALTER TABLE mrtovo.poste DROP CONSTRAINT IF EXISTS ck_poste_statut;
 ALTER TABLE mrtovo.poste ADD CONSTRAINT ck_poste_statut
@@ -368,3 +411,31 @@ ALTER TABLE mrtovo.affectation ADD CONSTRAINT ck_affectation_statut
 
 CREATE SEQUENCE IF NOT EXISTS mrtovo.seq_matricule START 1;
 CREATE SEQUENCE IF NOT EXISTS mrtovo.seq_contrat_reference START 1;
+
+-- Bloc 5 : domaines des valeurs du dossier administratif.
+ALTER TABLE mrtovo.employe DROP CONSTRAINT IF EXISTS ck_employe_sexe;
+ALTER TABLE mrtovo.employe ADD CONSTRAINT ck_employe_sexe
+    CHECK (sexe IS NULL OR sexe IN ('M','F'));
+
+ALTER TABLE mrtovo.employe DROP CONSTRAINT IF EXISTS ck_employe_situation_familiale;
+ALTER TABLE mrtovo.employe ADD CONSTRAINT ck_employe_situation_familiale
+    CHECK (situation_familiale IS NULL
+           OR situation_familiale IN ('CELIBATAIRE','MARIE','DIVORCE','VEUF','UNION_LIBRE'));
+
+ALTER TABLE mrtovo.employe DROP CONSTRAINT IF EXISTS ck_employe_nombre_enfants;
+ALTER TABLE mrtovo.employe ADD CONSTRAINT ck_employe_nombre_enfants
+    CHECK (nombre_enfants IS NULL OR nombre_enfants >= 0);
+
+ALTER TABLE mrtovo.document_salarie DROP CONSTRAINT IF EXISTS ck_document_salarie_type;
+ALTER TABLE mrtovo.document_salarie ADD CONSTRAINT ck_document_salarie_type
+    CHECK (type_document IN ('CIN','DIPLOME','CERTIFICAT_RESIDENCE','CASIER_JUDICIAIRE',
+                             'RIB','CONTRAT_SIGNE','CERTIFICAT_MEDICAL','AUTRE'));
+
+ALTER TABLE mrtovo.document_salarie DROP CONSTRAINT IF EXISTS ck_document_salarie_dates;
+ALTER TABLE mrtovo.document_salarie ADD CONSTRAINT ck_document_salarie_dates
+    CHECK (date_emission IS NULL OR date_expiration IS NULL OR date_expiration >= date_emission);
+
+ALTER TABLE mrtovo.journal_audit DROP CONSTRAINT IF EXISTS ck_journal_audit_action;
+ALTER TABLE mrtovo.journal_audit ADD CONSTRAINT ck_journal_audit_action
+    CHECK (action IN ('CONSULTATION_DOSSIER','MODIFICATION_IDENTITE','AJOUT_DOCUMENT',
+                      'SUPPRESSION_DOCUMENT','TELECHARGEMENT_DOCUMENT'));

@@ -39,3 +39,8 @@ Menu **Candidatures** (rôle RH) : liste des offres, puis tableau kanban par off
 Chaque demande crée son offre d'emploi : **En attente** à la création, **Fermée** si la Direction refuse, **Ouverte** à l'ouverture du recrutement.
 Parcours d'une candidature : À traiter → (présélection) Test → (note /20 + décision) Attente entretien → Accepté / Refusé.
 Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.java` et `frontend/src/services/api.js`.
+
+## Bloc 5 : dossier administratif du salarié
+
+Menu **Dossiers salariés** (rôle RH uniquement) : identité, situation professionnelle, contrats et salaire, frise de carrière, pièces administratives avec leur validité, et journal d'audit de chaque consultation ou modification.
+Documentation complète : [`docs/BLOC5-DOSSIER-SALARIE.md`](./docs/BLOC5-DOSSIER-SALARIE.md).

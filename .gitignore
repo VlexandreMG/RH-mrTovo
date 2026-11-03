@@ -17,7 +17,9 @@ Thumbs.db
 # ==========================================
 backend/target/
 backend/uploads/cv/
+backend/uploads/documents/
 uploads/cv/
+uploads/documents/
 backend/*.jar
 backend/*.war
 backend/*.ear
