@@ -16,7 +16,12 @@ const menu = computed(() => [
   { to: '/grille-salariale', label: 'Grille salariale', icon: 'coins' },
   ...(auth.role === 'RH' ? [{ to: '/offres', label: 'Candidatures', icon: 'briefcase' }] : []),
   { to: '/bloc3/dashboard', label: 'Recrutement', icon: 'briefcase' },
-  ...(auth.role === 'RH' ? [{ to: '/bloc5/dossiers', label: 'Dossiers salariés', icon: 'users' }] : [])
+  ...(auth.role === 'RH'
+    ? [
+        { to: '/bloc5/dossiers', label: 'Dossiers salariés', icon: 'users' },
+        { to: '/bloc6/temps', label: 'Temps de travail', icon: 'clock' }
+      ]
+    : [])
 ])
 
 function isActive(m) {

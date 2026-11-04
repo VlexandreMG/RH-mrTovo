@@ -347,6 +347,73 @@ CREATE TABLE IF NOT EXISTS mrtovo.journal_audit (
 );
 CREATE INDEX IF NOT EXISTS idx_journal_audit_employe ON mrtovo.journal_audit(employe_id, date_action DESC);
 
+-- ==========================================
+-- 6. BLOC 6 : TEMPS DE TRAVAIL ET POINTAGE
+-- ==========================================
+-- Regime de travail : un modele d'horaires reutilisable. Il n'est jamais modifie
+-- apres creation, sinon les calculs des semaines passees changeraient.
+CREATE TABLE IF NOT EXISTS mrtovo.regime_travail (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    libelle VARCHAR(255) NOT NULL,
+    tolerance_retard_minutes INTEGER NOT NULL DEFAULT 10,
+    date_creation TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    cree_par VARCHAR(150) NOT NULL
+);
+
+-- Grille hebdomadaire du regime : un jour sans ligne est un jour de repos (1 = lundi ... 7 = dimanche).
+CREATE TABLE IF NOT EXISTS mrtovo.horaire_regime (
+    id BIGSERIAL PRIMARY KEY,
+    regime_id BIGINT NOT NULL REFERENCES mrtovo.regime_travail(id) ON DELETE CASCADE,
+    jour_semaine INTEGER NOT NULL,
+    heure_debut TIME NOT NULL,
+    heure_fin TIME NOT NULL,
+    pause_minutes INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (regime_id, jour_semaine)
+);
+
+-- Planning du salarie : quel regime s'applique, de quelle date a quelle date.
+CREATE TABLE IF NOT EXISTS mrtovo.planning_salarie (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    regime_id BIGINT NOT NULL REFERENCES mrtovo.regime_travail(id),
+    date_debut DATE NOT NULL,
+    date_fin DATE,
+    affecte_par VARCHAR(150) NOT NULL,
+    UNIQUE (employe_id, date_debut)
+);
+CREATE INDEX IF NOT EXISTS idx_planning_salarie_employe ON mrtovo.planning_salarie(employe_id, date_debut);
+
+-- Un pointage par salarie et par jour. Les retards et heures sup n'y sont pas stockes : ils sont calcules.
+CREATE TABLE IF NOT EXISTS mrtovo.pointage (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    date_pointage DATE NOT NULL,
+    heure_entree TIME NOT NULL,
+    heure_sortie TIME,
+    commentaire VARCHAR(255),
+    saisi_par VARCHAR(150) NOT NULL,
+    date_saisie TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modifie_par VARCHAR(150),
+    date_modification TIMESTAMP,
+    UNIQUE (employe_id, date_pointage)
+);
+CREATE INDEX IF NOT EXISTS idx_pointage_date ON mrtovo.pointage(date_pointage);
+
+-- Decision du RH sur les heures sup d'une semaine (semaine_debut est toujours un lundi).
+CREATE TABLE IF NOT EXISTS mrtovo.decision_heures_sup (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    semaine_debut DATE NOT NULL,
+    statut VARCHAR(20) NOT NULL,
+    minutes_brutes INTEGER NOT NULL,
+    minutes_validees INTEGER NOT NULL,
+    commentaire VARCHAR(255),
+    decide_par VARCHAR(150) NOT NULL,
+    date_decision TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (employe_id, semaine_debut)
+);
+
 -- Contraintes de domaine re-appliquees pour les bases deja initialisees.
 ALTER TABLE mrtovo.poste DROP CONSTRAINT IF EXISTS ck_poste_statut;
 ALTER TABLE mrtovo.poste ADD CONSTRAINT ck_poste_statut
@@ -438,4 +505,39 @@ ALTER TABLE mrtovo.document_salarie ADD CONSTRAINT ck_document_salarie_dates
 ALTER TABLE mrtovo.journal_audit DROP CONSTRAINT IF EXISTS ck_journal_audit_action;
 ALTER TABLE mrtovo.journal_audit ADD CONSTRAINT ck_journal_audit_action
     CHECK (action IN ('CONSULTATION_DOSSIER','MODIFICATION_IDENTITE','AJOUT_DOCUMENT',
-                      'SUPPRESSION_DOCUMENT','TELECHARGEMENT_DOCUMENT'));
+                      'SUPPRESSION_DOCUMENT','TELECHARGEMENT_DOCUMENT',
+                      'AFFECTATION_REGIME','SAISIE_POINTAGE','CORRECTION_POINTAGE',
+                      'SUPPRESSION_POINTAGE','DECISION_HEURES_SUP','REOUVERTURE_HEURES_SUP'));
+
+-- Bloc 6 : domaines des valeurs du temps de travail.
+ALTER TABLE mrtovo.regime_travail DROP CONSTRAINT IF EXISTS ck_regime_tolerance;
+ALTER TABLE mrtovo.regime_travail ADD CONSTRAINT ck_regime_tolerance
+    CHECK (tolerance_retard_minutes BETWEEN 0 AND 60);
+
+ALTER TABLE mrtovo.horaire_regime DROP CONSTRAINT IF EXISTS ck_horaire_regime_jour;
+ALTER TABLE mrtovo.horaire_regime ADD CONSTRAINT ck_horaire_regime_jour
+    CHECK (jour_semaine BETWEEN 1 AND 7);
+
+ALTER TABLE mrtovo.horaire_regime DROP CONSTRAINT IF EXISTS ck_horaire_regime_heures;
+ALTER TABLE mrtovo.horaire_regime ADD CONSTRAINT ck_horaire_regime_heures
+    CHECK (heure_fin > heure_debut AND pause_minutes >= 0);
+
+ALTER TABLE mrtovo.planning_salarie DROP CONSTRAINT IF EXISTS ck_planning_dates;
+ALTER TABLE mrtovo.planning_salarie ADD CONSTRAINT ck_planning_dates
+    CHECK (date_fin IS NULL OR date_fin >= date_debut);
+
+ALTER TABLE mrtovo.pointage DROP CONSTRAINT IF EXISTS ck_pointage_heures;
+ALTER TABLE mrtovo.pointage ADD CONSTRAINT ck_pointage_heures
+    CHECK (heure_sortie IS NULL OR heure_sortie > heure_entree);
+
+ALTER TABLE mrtovo.decision_heures_sup DROP CONSTRAINT IF EXISTS ck_decision_hs_statut;
+ALTER TABLE mrtovo.decision_heures_sup ADD CONSTRAINT ck_decision_hs_statut
+    CHECK (statut IN ('VALIDEE','REFUSEE'));
+
+ALTER TABLE mrtovo.decision_heures_sup DROP CONSTRAINT IF EXISTS ck_decision_hs_minutes;
+ALTER TABLE mrtovo.decision_heures_sup ADD CONSTRAINT ck_decision_hs_minutes
+    CHECK (minutes_validees BETWEEN 0 AND minutes_brutes);
+
+ALTER TABLE mrtovo.decision_heures_sup DROP CONSTRAINT IF EXISTS ck_decision_hs_lundi;
+ALTER TABLE mrtovo.decision_heures_sup ADD CONSTRAINT ck_decision_hs_lundi
+    CHECK (EXTRACT(ISODOW FROM semaine_debut) = 1);

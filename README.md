@@ -44,3 +44,8 @@ Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.
 
 Menu **Dossiers salariés** (rôle RH uniquement) : identité, situation professionnelle, contrats et salaire, frise de carrière, pièces administratives avec leur validité, et journal d'audit de chaque consultation ou modification.
 Documentation complète : [`docs/BLOC5-DOSSIER-SALARIE.md`](./docs/BLOC5-DOSSIER-SALARIE.md).
+
+## Bloc 6 : temps de travail et pointage
+
+Menu **Temps de travail** (rôle RH uniquement) : régimes et planning, saisie des pointages, calcul du temps travaillé, détection des anomalies, compensation hebdomadaire des retards par les heures supplémentaires validées, et variables de paie.
+Documentation complète : [`docs/BLOC6-TEMPS-DE-TRAVAIL.md`](./docs/BLOC6-TEMPS-DE-TRAVAIL.md).

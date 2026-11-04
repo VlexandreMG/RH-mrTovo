@@ -117,5 +117,21 @@ INSERT INTO entretien (id, evaluation_id, date_entretien, lieu, commentaire, sta
 
 SELECT setval('entretien_id_seq', (SELECT MAX(id) FROM entretien));
 
+-- ==========================================
+-- 7. BLOC 6 : REGIMES DE TRAVAIL
+-- ==========================================
+INSERT INTO regime_travail (id, code, libelle, tolerance_retard_minutes, cree_par) VALUES
+(1, 'BUREAU_40H', 'Bureau 40 h (lundi au vendredi)', 10, 'systeme'),
+(2, 'SERVICE_SAMEDI_40H', 'Service 40 h (samedi matin inclus)', 10, 'systeme') ON CONFLICT DO NOTHING;
+
+SELECT setval('regime_travail_id_seq', (SELECT MAX(id) FROM regime_travail));
+
+INSERT INTO horaire_regime (regime_id, jour_semaine, heure_debut, heure_fin, pause_minutes) VALUES
+(1, 1, '08:00', '17:00', 60), (1, 2, '08:00', '17:00', 60), (1, 3, '08:00', '17:00', 60),
+(1, 4, '08:00', '17:00', 60), (1, 5, '08:00', '17:00', 60),
+(2, 1, '08:00', '16:00', 60), (2, 2, '08:00', '16:00', 60), (2, 3, '08:00', '16:00', 60),
+(2, 4, '08:00', '16:00', 60), (2, 5, '08:00', '16:00', 60), (2, 6, '08:00', '13:00', 0)
+ON CONFLICT DO NOTHING;
+
 -- Remet le search_path par défaut : la connexion retourne au pool et sert ensuite au Bloc 1 (schéma public).
 RESET search_path;

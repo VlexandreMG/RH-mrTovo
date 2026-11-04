@@ -43,6 +43,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/candidat/**").hasRole("CANDIDAT")
                         // Bloc 5 : dossier administratif confidentiel, reserve au RH.
                         .requestMatchers("/api/bloc5/**").hasRole("RH")
+                        // Bloc 6 : pointages et variables de paie, reserves au RH.
+                        .requestMatchers("/api/bloc6/**").hasRole("RH")
                         .requestMatchers("/api/**").hasAnyRole("MANAGER", "RH", "FINANCE", "DIRECTION")
                         .anyRequest().authenticated()
                 )

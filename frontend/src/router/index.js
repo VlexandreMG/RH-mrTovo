@@ -109,6 +109,12 @@ const router = createRouter({
           meta: { roles: ['RH'] }
         },
         {
+          path: 'bloc6/temps',
+          name: 'bloc6-temps',
+          component: () => import('@/views/TempsTravailView.vue'),
+          meta: { roles: ['RH'] }
+        },
+        {
           path: 'bloc3/contrats',
           name: 'bloc3-contrats',
           component: () => import('@/views/ContratsView.vue'),

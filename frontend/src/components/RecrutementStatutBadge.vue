@@ -36,6 +36,9 @@ const styles = {
   EXPIRE_BIENTOT: 'is-warning',
   EXPIRE: 'is-danger',
   PERMANENT: 'is-info',
+  // Bloc 6 : heures supplémentaires
+  A_VALIDER: 'is-warning',
+  SANS_HS: '',
 }
 
 const libelles = {
@@ -50,6 +53,10 @@ const libelles = {
   EXPIRE_BIENTOT: 'Expire bientôt',
   EXPIRE: 'Expiré',
   PERMANENT: 'Permanent',
+  A_VALIDER: 'À valider',
+  SANS_HS: 'Aucune',
+  VALIDEE: 'Validée',
+  REFUSEE: 'Refusée',
 }
 
 const classe = computed(() => styles[props.statut] ?? '')
