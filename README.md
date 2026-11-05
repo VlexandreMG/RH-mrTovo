@@ -43,12 +43,12 @@ Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.
 ## Bloc 5 : dossier administratif du salarié
 
 Menu **Dossiers salariés** (rôle RH uniquement) : identité, situation professionnelle, contrats et salaire, frise de carrière, pièces administratives avec leur validité, et journal d'audit de chaque consultation ou modification.
-Documentation complète : [`docs/BLOC5-DOSSIER-SALARIE.md`](./docs/BLOC5-DOSSIER-SALARIE.md).
+Documentation complète : [`docs/BLOC5-DOSSIER-SALARIE.md`](./docs/BLOC5-DOSSIER-SALARIE.md). Plan : [`docs/BLOC5-PLAN.png`](./docs/BLOC5-PLAN.png).
 
 ## Bloc 6 : temps de travail et pointage
 
 Menu **Temps de travail** (rôle RH uniquement) : régimes et planning, saisie des pointages, calcul du temps travaillé, détection des anomalies, compensation hebdomadaire des retards par les heures supplémentaires validées, et variables de paie.
-Documentation complète : [`docs/BLOC6-TEMPS-DE-TRAVAIL.md`](./docs/BLOC6-TEMPS-DE-TRAVAIL.md).
+Documentation complète : [`docs/BLOC6-TEMPS-DE-TRAVAIL.md`](./docs/BLOC6-TEMPS-DE-TRAVAIL.md). Plan : [`docs/BLOC6-PLAN.png`](./docs/BLOC6-PLAN.png).
 
 ## Bloc 7 : congés et absences
 

@@ -2,6 +2,8 @@
 
 > Documentation technique rédigée par l'auteur du code. J'y explique **ce que j'ai fait, comment et pourquoi**, fichier par fichier, bloc par bloc.
 
+![Plan du Bloc 6](./BLOC6-PLAN.png)
+
 ---
 
 ## Sommaire
