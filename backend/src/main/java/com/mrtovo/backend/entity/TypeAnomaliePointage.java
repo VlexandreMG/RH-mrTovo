@@ -8,7 +8,8 @@ public enum TypeAnomaliePointage {
     RETARD_EXCESSIF("Retard important"),
     DEPART_ANTICIPE("Départ anticipé"),
     PRESENCE_EXCESSIVE("Présence anormalement longue"),
-    SANS_REGIME("Aucun régime de travail affecté");
+    SANS_REGIME("Aucun régime de travail affecté"),
+    POINTAGE_PENDANT_CONGE("Pointage pendant un congé validé");
 
     private final String libelle;
 

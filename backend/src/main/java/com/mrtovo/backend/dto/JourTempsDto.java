@@ -1,5 +1,7 @@
 package com.mrtovo.backend.dto;
 
+import com.mrtovo.backend.entity.StatutAbsence;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -14,6 +16,10 @@ public record JourTempsDto(
         LocalTime heureSortie,
         String commentaire,
         boolean absent,
+        String congeLibelle,
+        Boolean congeRemunere,
+        Long absenceId,
+        StatutAbsence absenceStatut,
         int minutesPrevues,
         int minutesTravaillees,
         int minutesRetard,

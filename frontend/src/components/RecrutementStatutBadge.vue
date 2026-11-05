@@ -39,6 +39,13 @@ const styles = {
   // Bloc 6 : heures supplémentaires
   A_VALIDER: 'is-warning',
   SANS_HS: '',
+  // Bloc 7 : demandes de congé et absences
+  EN_ATTENTE_MANAGER: 'is-warning',
+  EN_ATTENTE_RH: 'is-warning',
+  ANNULEE: '',
+  JUSTIFIEE: 'is-success',
+  NON_JUSTIFIEE: 'is-danger',
+  A_QUALIFIER: 'is-warning',
 }
 
 const libelles = {
@@ -57,6 +64,12 @@ const libelles = {
   SANS_HS: 'Aucune',
   VALIDEE: 'Validée',
   REFUSEE: 'Refusée',
+  EN_ATTENTE_MANAGER: 'Attente manager',
+  EN_ATTENTE_RH: 'Attente RH',
+  ANNULEE: 'Annulée',
+  JUSTIFIEE: 'Justifiée',
+  NON_JUSTIFIEE: 'Non justifiée',
+  A_QUALIFIER: 'À qualifier',
 }
 
 const classe = computed(() => styles[props.statut] ?? '')

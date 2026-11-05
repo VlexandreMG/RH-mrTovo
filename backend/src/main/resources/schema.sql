@@ -414,6 +414,78 @@ CREATE TABLE IF NOT EXISTS mrtovo.decision_heures_sup (
     UNIQUE (employe_id, semaine_debut)
 );
 
+-- ==========================================
+-- 7. BLOC 7 : CONGES ET ABSENCES
+-- ==========================================
+-- Le role EMPLOYE est nouveau : Hibernate a pu poser sur public.utilisateur un CHECK avec
+-- l'ancienne liste des roles, qui refuserait la creation des comptes salaries.
+ALTER TABLE IF EXISTS public.utilisateur DROP CONSTRAINT IF EXISTS utilisateur_role_check;
+
+-- Type de conge : ses regles sont des donnees, pas du code.
+CREATE TABLE IF NOT EXISTS mrtovo.type_conge (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    libelle VARCHAR(255) NOT NULL,
+    decompte_solde BOOLEAN NOT NULL DEFAULT FALSE,
+    remunere BOOLEAN NOT NULL DEFAULT TRUE,
+    justificatif_requis BOOLEAN NOT NULL DEFAULT FALSE,
+    plafond_annuel_jours INTEGER
+);
+
+-- Droits : les 2,5 jours mensuels sont calcules ; on ne stocke ici que les mouvements decides par le RH.
+CREATE TABLE IF NOT EXISTS mrtovo.droit_conge (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    type_droit VARCHAR(30) NOT NULL,
+    jours NUMERIC(6,2) NOT NULL,
+    motif VARCHAR(255) NOT NULL,
+    mois_paie VARCHAR(7),
+    montant NUMERIC(14,2),
+    cree_par VARCHAR(150) NOT NULL,
+    date_creation TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_droit_conge_employe ON mrtovo.droit_conge(employe_id);
+
+CREATE TABLE IF NOT EXISTS mrtovo.demande_conge (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    type_conge_id BIGINT NOT NULL REFERENCES mrtovo.type_conge(id),
+    date_debut DATE NOT NULL,
+    date_fin DATE NOT NULL,
+    nb_jours INTEGER NOT NULL,
+    motif VARCHAR(255),
+    statut VARCHAR(30) NOT NULL,
+    date_demande TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    demande_par VARCHAR(150) NOT NULL,
+    avis_manager_par VARCHAR(150),
+    date_avis_manager TIMESTAMP,
+    commentaire_manager VARCHAR(255),
+    decide_par VARCHAR(150),
+    date_decision TIMESTAMP,
+    commentaire_rh VARCHAR(255),
+    justificatif_cle VARCHAR(100),
+    justificatif_nom VARCHAR(255),
+    justificatif_type VARCHAR(100)
+);
+CREATE INDEX IF NOT EXISTS idx_demande_conge_employe ON mrtovo.demande_conge(employe_id, date_debut);
+CREATE INDEX IF NOT EXISTS idx_demande_conge_periode ON mrtovo.demande_conge(date_debut, date_fin);
+
+-- Absence qualifiee par le RH. Un jour absent sans ligne ici reste a qualifier.
+CREATE TABLE IF NOT EXISTS mrtovo.absence (
+    id BIGSERIAL PRIMARY KEY,
+    employe_id BIGINT NOT NULL REFERENCES mrtovo.employe(id),
+    date_absence DATE NOT NULL,
+    statut VARCHAR(20) NOT NULL,
+    motif VARCHAR(255),
+    justificatif_cle VARCHAR(100),
+    justificatif_nom VARCHAR(255),
+    justificatif_type VARCHAR(100),
+    qualifie_par VARCHAR(150) NOT NULL,
+    date_qualification TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (employe_id, date_absence)
+);
+CREATE INDEX IF NOT EXISTS idx_absence_date ON mrtovo.absence(date_absence);
+
 -- Contraintes de domaine re-appliquees pour les bases deja initialisees.
 ALTER TABLE mrtovo.poste DROP CONSTRAINT IF EXISTS ck_poste_statut;
 ALTER TABLE mrtovo.poste ADD CONSTRAINT ck_poste_statut
@@ -507,7 +579,10 @@ ALTER TABLE mrtovo.journal_audit ADD CONSTRAINT ck_journal_audit_action
     CHECK (action IN ('CONSULTATION_DOSSIER','MODIFICATION_IDENTITE','AJOUT_DOCUMENT',
                       'SUPPRESSION_DOCUMENT','TELECHARGEMENT_DOCUMENT',
                       'AFFECTATION_REGIME','SAISIE_POINTAGE','CORRECTION_POINTAGE',
-                      'SUPPRESSION_POINTAGE','DECISION_HEURES_SUP','REOUVERTURE_HEURES_SUP'));
+                      'SUPPRESSION_POINTAGE','DECISION_HEURES_SUP','REOUVERTURE_HEURES_SUP',
+                      'CREATION_COMPTE_SALARIE','DEMANDE_CONGE','AVIS_MANAGER_CONGE','DECISION_RH_CONGE',
+                      'ANNULATION_CONGE','AJOUT_JUSTIFICATIF','QUALIFICATION_ABSENCE',
+                      'AJUSTEMENT_DROIT_CONGE','INDEMNISATION_CONGE'));
 
 -- Bloc 6 : domaines des valeurs du temps de travail.
 ALTER TABLE mrtovo.regime_travail DROP CONSTRAINT IF EXISTS ck_regime_tolerance;
@@ -541,3 +616,24 @@ ALTER TABLE mrtovo.decision_heures_sup ADD CONSTRAINT ck_decision_hs_minutes
 ALTER TABLE mrtovo.decision_heures_sup DROP CONSTRAINT IF EXISTS ck_decision_hs_lundi;
 ALTER TABLE mrtovo.decision_heures_sup ADD CONSTRAINT ck_decision_hs_lundi
     CHECK (EXTRACT(ISODOW FROM semaine_debut) = 1);
+
+-- Bloc 7 : domaines des valeurs des conges et absences.
+ALTER TABLE mrtovo.type_conge DROP CONSTRAINT IF EXISTS ck_type_conge_plafond;
+ALTER TABLE mrtovo.type_conge ADD CONSTRAINT ck_type_conge_plafond
+    CHECK (plafond_annuel_jours IS NULL OR plafond_annuel_jours > 0);
+
+ALTER TABLE mrtovo.droit_conge DROP CONSTRAINT IF EXISTS ck_droit_conge_type;
+ALTER TABLE mrtovo.droit_conge ADD CONSTRAINT ck_droit_conge_type
+    CHECK (type_droit IN ('AJUSTEMENT','INDEMNISATION'));
+
+ALTER TABLE mrtovo.demande_conge DROP CONSTRAINT IF EXISTS ck_demande_conge_statut;
+ALTER TABLE mrtovo.demande_conge ADD CONSTRAINT ck_demande_conge_statut
+    CHECK (statut IN ('EN_ATTENTE_MANAGER','EN_ATTENTE_RH','VALIDEE','REFUSEE','ANNULEE'));
+
+ALTER TABLE mrtovo.demande_conge DROP CONSTRAINT IF EXISTS ck_demande_conge_dates;
+ALTER TABLE mrtovo.demande_conge ADD CONSTRAINT ck_demande_conge_dates
+    CHECK (date_fin >= date_debut AND nb_jours > 0);
+
+ALTER TABLE mrtovo.absence DROP CONSTRAINT IF EXISTS ck_absence_statut;
+ALTER TABLE mrtovo.absence ADD CONSTRAINT ck_absence_statut
+    CHECK (statut IN ('JUSTIFIEE','NON_JUSTIFIEE'));

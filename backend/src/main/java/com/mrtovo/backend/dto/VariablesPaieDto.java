@@ -8,6 +8,10 @@ public record VariablesPaieDto(
         String matricule,
         String nomComplet,
         int joursAbsents,
+        int joursAbsenceAQualifier,
+        int joursAbsenceNonJustifies,
+        int joursConge,
+        int joursSansSolde,
         int minutesPrevues,
         int minutesTravaillees,
         int minutesDues,
@@ -23,5 +27,7 @@ public record VariablesPaieDto(
         BigDecimal salaireBase,
         BigDecimal tauxHoraire,
         BigDecimal montantHeuresSup,
-        BigDecimal montantRetenue) {
+        BigDecimal montantRetenue,
+        BigDecimal montantRetenueAbsences,
+        BigDecimal montantIndemniteConge) {
 }

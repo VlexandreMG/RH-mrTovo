@@ -49,3 +49,8 @@ Documentation complète : [`docs/BLOC5-DOSSIER-SALARIE.md`](./docs/BLOC5-DOSSIER
 
 Menu **Temps de travail** (rôle RH uniquement) : régimes et planning, saisie des pointages, calcul du temps travaillé, détection des anomalies, compensation hebdomadaire des retards par les heures supplémentaires validées, et variables de paie.
 Documentation complète : [`docs/BLOC6-TEMPS-DE-TRAVAIL.md`](./docs/BLOC6-TEMPS-DE-TRAVAIL.md).
+
+## Bloc 7 : congés et absences
+
+Chaque salarié a son **espace** : il consulte son solde et demande ses congés. Le **manager** de son département donne son avis, puis le **RH** décide (menu **Congés**). Le RH qualifie aussi les absences, gère les soldes, indemnise les jours non pris (salaire brut × jours / 30) et crée les comptes salariés. Congés et absences alimentent le planning et les variables de paie du Bloc 6.
+Documentation complète : [`docs/BLOC7-CONGES-ABSENCES.md`](./docs/BLOC7-CONGES-ABSENCES.md). Plan : [`docs/BLOC7-PLAN.png`](./docs/BLOC7-PLAN.png).

@@ -6,6 +6,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
 @EnableScheduling
-@EnableConfigurationProperties({RecrutementProperties.class, TempsTravailProperties.class})
+@EnableConfigurationProperties({RecrutementProperties.class, TempsTravailProperties.class, CongeProperties.class})
 public class RecrutementConfiguration {
 }

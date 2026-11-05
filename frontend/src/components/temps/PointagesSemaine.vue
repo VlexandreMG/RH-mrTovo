@@ -176,8 +176,10 @@ onMounted(async () => {
                 </div>
               </td>
               <td>
-                <template v-if="jour.heureDebutPrevue">{{ heure(jour.heureDebutPrevue) }} – {{ heure(jour.heureFinPrevue) }}</template>
+                <span v-if="jour.congeLibelle" class="b3-badge is-info">{{ jour.congeLibelle }}</span>
+                <template v-else-if="jour.heureDebutPrevue">{{ heure(jour.heureDebutPrevue) }} – {{ heure(jour.heureFinPrevue) }}</template>
                 <span v-else class="b3-muted">Repos</span>
+                <div v-if="jour.absenceStatut"><StatutBadge :statut="jour.absenceStatut" /></div>
               </td>
               <td><input v-model="lignes[jour.date].entree" type="time" :disabled="jour.date > aujourdhui" aria-label="Entrée" /></td>
               <td><input v-model="lignes[jour.date].sortie" type="time" :disabled="jour.date > aujourdhui" aria-label="Sortie" /></td>

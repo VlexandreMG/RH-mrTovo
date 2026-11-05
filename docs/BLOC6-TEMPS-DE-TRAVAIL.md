@@ -1310,7 +1310,7 @@ Semaine avec 3 h 10 dues et des heures sup refusées : rien n'est compensé, **3
 
 - **Taux et paliers** : 130 % / 150 % sur 8 h sont une hypothèse de travail à confirmer. Ils sont configurables, mais la règle ne distingue pas les heures de nuit, de dimanche ou de jour férié, souvent majorées différemment.
 - **Seuil légal hebdomadaire** : une heure sup est comptée dès la sortie après l'horaire, même si la semaine n'atteint pas 40 h à cause d'une absence. C'est au RH d'arbitrer au moment de la validation.
-- **Absences** : les jours sans pointage sont comptés et remontés dans les variables, mais **aucune retenue d'argent** n'est calculée. Ce traitement, avec les justificatifs, relève du Bloc 7. Une absence ne se compense pas non plus avec des heures sup.
+- **Absences** : depuis le Bloc 7, le RH les qualifie et une absence non justifiée est retenue à salaire brut / 30 (voir [`BLOC7-CONGES-ABSENCES.md`](./BLOC7-CONGES-ABSENCES.md)). Une absence ne se compense pas avec des heures sup.
 - **Micro-heures sup** : sortir à 17:02 crée 2 min d'heures sup, car la tolérance ne s'applique qu'aux retards. Le RH peut les retirer par une validation partielle.
 - **Travail de nuit** : une sortie après minuit est refusée, un seul pointage étant possible par jour et la sortie devant suivre l'entrée. Il faudrait une date de sortie distincte.
 - **Pauses** : pas de pointage de pause, et le seuil de 5 h est fixé dans le code. Une journée coupée (plusieurs entrées et sorties) n'est pas gérée.

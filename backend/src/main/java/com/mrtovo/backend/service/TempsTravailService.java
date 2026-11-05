@@ -5,19 +5,26 @@ import com.mrtovo.backend.dto.AnomaliePointageDto;
 import com.mrtovo.backend.dto.JourTempsDto;
 import com.mrtovo.backend.dto.SemaineTempsDto;
 import com.mrtovo.backend.dto.VariablesPaieDto;
+import com.mrtovo.backend.entity.Absence;
 import com.mrtovo.backend.entity.Contrat;
 import com.mrtovo.backend.entity.DecisionHeuresSup;
+import com.mrtovo.backend.entity.DemandeConge;
+import com.mrtovo.backend.entity.DroitConge;
 import com.mrtovo.backend.entity.EmployeEmbauche;
 import com.mrtovo.backend.entity.HoraireRegime;
 import com.mrtovo.backend.entity.PlanningSalarie;
 import com.mrtovo.backend.entity.Pointage;
 import com.mrtovo.backend.entity.RegimeTravail;
+import com.mrtovo.backend.entity.StatutAbsence;
 import com.mrtovo.backend.entity.StatutEmploye;
 import com.mrtovo.backend.entity.StatutHeuresSup;
 import com.mrtovo.backend.entity.TypeAnomaliePointage;
 import com.mrtovo.backend.exception.ApiException;
+import com.mrtovo.backend.repository.AbsenceRepository;
 import com.mrtovo.backend.repository.ContratRepository;
 import com.mrtovo.backend.repository.DecisionHeuresSupRepository;
+import com.mrtovo.backend.repository.DemandeCongeRepository;
+import com.mrtovo.backend.repository.DroitCongeRepository;
 import com.mrtovo.backend.repository.EmployeEmbaucheRepository;
 import com.mrtovo.backend.repository.PlanningSalarieRepository;
 import com.mrtovo.backend.repository.PointageRepository;
@@ -58,6 +65,9 @@ public class TempsTravailService {
     private final PlanningSalarieRepository planningRepository;
     private final DecisionHeuresSupRepository decisionRepository;
     private final ContratRepository contratRepository;
+    private final DemandeCongeRepository demandeCongeRepository;
+    private final AbsenceRepository absenceRepository;
+    private final DroitCongeRepository droitCongeRepository;
     private final TempsTravailProperties reglages;
     private final Clock horloge;
 
@@ -67,9 +77,13 @@ public class TempsTravailService {
                                PlanningSalarieRepository planningRepository,
                                DecisionHeuresSupRepository decisionRepository,
                                ContratRepository contratRepository,
+                               DemandeCongeRepository demandeCongeRepository,
+                               AbsenceRepository absenceRepository,
+                               DroitCongeRepository droitCongeRepository,
                                TempsTravailProperties reglages) {
-        this(employeRepository, pointageRepository, planningRepository, decisionRepository,
-                contratRepository, reglages, Clock.systemDefaultZone());
+        this(employeRepository, pointageRepository, planningRepository, decisionRepository, contratRepository,
+                demandeCongeRepository, absenceRepository, droitCongeRepository, reglages,
+                Clock.systemDefaultZone());
     }
 
     TempsTravailService(EmployeEmbaucheRepository employeRepository,
@@ -77,6 +91,9 @@ public class TempsTravailService {
                         PlanningSalarieRepository planningRepository,
                         DecisionHeuresSupRepository decisionRepository,
                         ContratRepository contratRepository,
+                        DemandeCongeRepository demandeCongeRepository,
+                        AbsenceRepository absenceRepository,
+                        DroitCongeRepository droitCongeRepository,
                         TempsTravailProperties reglages,
                         Clock horloge) {
         this.employeRepository = employeRepository;
@@ -84,6 +101,9 @@ public class TempsTravailService {
         this.planningRepository = planningRepository;
         this.decisionRepository = decisionRepository;
         this.contratRepository = contratRepository;
+        this.demandeCongeRepository = demandeCongeRepository;
+        this.absenceRepository = absenceRepository;
+        this.droitCongeRepository = droitCongeRepository;
         this.reglages = reglages;
         this.horloge = horloge;
     }
@@ -119,13 +139,7 @@ public class TempsTravailService {
     }
 
     public List<AnomaliePointageDto> anomalies(LocalDate du, LocalDate au) {
-        if (au.isBefore(du)) {
-            throw ApiException.badRequest("PERIODE_INVALIDE", "La date de fin précède la date de début.");
-        }
-        if (ChronoUnit.DAYS.between(du, au) > PERIODE_ANOMALIES_MAX_JOURS) {
-            throw ApiException.badRequest("PERIODE_TROP_LONGUE",
-                    "La période ne peut pas dépasser " + PERIODE_ANOMALIES_MAX_JOURS + " jours.");
-        }
+        verifierPeriode(du, au);
         LocalDate aujourdhui = LocalDate.now(horloge);
         LocalDate premierLundi = lundiDe(du);
         LocalDate dernierLundi = lundiDe(au);
@@ -150,6 +164,32 @@ public class TempsTravailService {
         return resultat;
     }
 
+    /** Bloc 7 : les jours absents d'une periode que le RH n'a pas encore qualifies. */
+    public List<JourAQualifier> absencesAQualifier(LocalDate du, LocalDate au) {
+        verifierPeriode(du, au);
+        LocalDate aujourdhui = LocalDate.now(horloge);
+        LocalDate premierLundi = lundiDe(du);
+        LocalDate dernierLundi = lundiDe(au);
+        Donnees donnees = chargerDonnees(premierLundi, dernierLundi.plusDays(6));
+
+        List<JourAQualifier> resultat = new ArrayList<>();
+        for (EmployeEmbauche employe : effectif()) {
+            for (LocalDate lundi = premierLundi; !lundi.isAfter(dernierLundi); lundi = lundi.plusWeeks(1)) {
+                for (JourTempsDto jour : calculerSemaine(employe, lundi, donnees, aujourdhui).jours()) {
+                    if (jour.absent() && jour.absenceStatut() == null
+                            && !jour.date().isBefore(du) && !jour.date().isAfter(au)) {
+                        resultat.add(new JourAQualifier(employe, jour.date()));
+                    }
+                }
+            }
+        }
+        resultat.sort(Comparator.comparing(JourAQualifier::date).reversed());
+        return resultat;
+    }
+
+    public record JourAQualifier(EmployeEmbauche employe, LocalDate date) {
+    }
+
     /**
      * Variables transmises a la paie. Une semaine appartient au mois de son lundi :
      * elle n'est ainsi jamais coupee en deux, ce qui garde la compensation hebdomadaire exacte.
@@ -159,10 +199,13 @@ public class TempsTravailService {
         List<LocalDate> lundis = lundisDu(mois);
         LocalDate dernierJour = lundis.get(lundis.size() - 1).plusDays(6);
         Donnees donnees = chargerDonnees(lundis.get(0), dernierJour);
+        Map<Long, BigDecimal> indemnites = droitCongeRepository.findByMoisPaie(mois.toString()).stream()
+                .collect(Collectors.toMap(droit -> droit.getEmploye().getId(), DroitConge::getMontant, BigDecimal::add));
 
         return effectif().stream()
                 .filter(employe -> !employe.getDateEntree().isAfter(dernierJour))
-                .map(employe -> variablesDe(employe, lundis, dernierJour, donnees, aujourdhui))
+                .map(employe -> variablesDe(employe, lundis, dernierJour, donnees,
+                        indemnites.getOrDefault(employe.getId(), BigDecimal.ZERO), aujourdhui))
                 .toList();
     }
 
@@ -181,7 +224,7 @@ public class TempsTravailService {
             if (planning != null) {
                 regimeLibelle = planning.getRegime().getLibelle();
             }
-            jours.add(calculerJour(employe, date, planning, donnees.pointage(employe, date), aujourdhui));
+            jours.add(calculerJour(employe, date, planning, donnees.pointage(employe, date), donnees, aujourdhui));
         }
 
         int prevues = jours.stream().mapToInt(JourTempsDto::minutesPrevues).sum();
@@ -206,7 +249,7 @@ public class TempsTravailService {
     }
 
     private JourTempsDto calculerJour(EmployeEmbauche employe, LocalDate date, PlanningSalarie planning,
-                                      Pointage pointage, LocalDate aujourdhui) {
+                                      Pointage pointage, Donnees donnees, LocalDate aujourdhui) {
         boolean dansEffectif = !date.isBefore(employe.getDateEntree());
         RegimeTravail regime = planning != null ? planning.getRegime() : null;
         HoraireRegime prevu = regime != null && dansEffectif ? regime.horaireDu(date.getDayOfWeek().getValue()) : null;
@@ -223,9 +266,16 @@ public class TempsTravailService {
                         pointage != null ? pointage.getHeureSortie() : null,
                         tolerance);
 
-        boolean absent = horaire != null && pointage == null && date.isBefore(aujourdhui);
+        // Bloc 7 : un jour de conge valide est un jour prevu ou le salarie n'est pas attendu.
+        DemandeConge conge = dansEffectif ? donnees.conge(employe, date) : null;
+        boolean absent = horaire != null && pointage == null && conge == null && date.isBefore(aujourdhui);
+        Absence absence = absent ? donnees.absence(employe, date) : null;
         List<AnomaliePointageDto> anomalies = detecterAnomalies(
                 employe, date, regime, horaire, pointage, resultat, absent, aujourdhui);
+        if (conge != null && pointage != null) {
+            anomalies.add(anomalie(employe, date, TypeAnomaliePointage.POINTAGE_PENDANT_CONGE,
+                    conge.getTypeConge().getLibelle() + " validé sur cette date"));
+        }
 
         return new JourTempsDto(
                 date,
@@ -236,6 +286,10 @@ public class TempsTravailService {
                 pointage != null ? pointage.getHeureSortie() : null,
                 pointage != null ? pointage.getCommentaire() : null,
                 absent,
+                conge != null ? conge.getTypeConge().getLibelle() : null,
+                conge != null ? conge.getTypeConge().isRemunere() : null,
+                absence != null ? absence.getId() : null,
+                absence != null ? absence.getStatut() : null,
                 resultat.prevues(),
                 resultat.travaillees(),
                 resultat.retard(),
@@ -314,8 +368,12 @@ public class TempsTravailService {
     // =====================================================================
 
     private VariablesPaieDto variablesDe(EmployeEmbauche employe, List<LocalDate> lundis, LocalDate dernierJour,
-                                         Donnees donnees, LocalDate aujourdhui) {
+                                         Donnees donnees, BigDecimal indemnite, LocalDate aujourdhui) {
         int absents = 0;
+        int aQualifier = 0;
+        int nonJustifies = 0;
+        int joursConge = 0;
+        int sansSolde = 0;
         int prevues = 0;
         int travaillees = 0;
         int dues = 0;
@@ -344,7 +402,22 @@ public class TempsTravailService {
             }
             provisoire |= semaine.jours().stream().anyMatch(jour -> jour.pointageId() != null
                     && jour.heureSortie() == null);
+            for (JourTempsDto jour : semaine.jours()) {
+                if (jour.absent() && jour.absenceStatut() == null) {
+                    aQualifier++;
+                }
+                if (jour.absenceStatut() == StatutAbsence.NON_JUSTIFIEE) {
+                    nonJustifies++;
+                }
+                if (jour.congeLibelle() != null) {
+                    joursConge++;
+                    if (Boolean.FALSE.equals(jour.congeRemunere())) {
+                        sansSolde++;
+                    }
+                }
+            }
         }
+        provisoire |= aQualifier > 0;
 
         Contrat contrat = DossierSalarieService.contratEnCours(
                 contratRepository.findByEmployeIdOrderByDateDebutAsc(employe.getId()), dernierJour);
@@ -356,12 +429,16 @@ public class TempsTravailService {
 
         return new VariablesPaieDto(
                 employe.getId(), employe.getMatricule(), employe.getNomComplet(),
-                absents, prevues, travaillees, dues, compensees, retenues, palier1, palier2,
+                absents, aQualifier, nonJustifies, joursConge, sansSolde, prevues, travaillees, dues, compensees, retenues, palier1, palier2,
                 reglages.getTauxHsPalier1(), reglages.getTauxHsPalier2(), aValider, anomalies, provisoire,
                 salaire,
                 tauxExact != null ? tauxExact.setScale(2, RoundingMode.HALF_UP) : null,
                 tauxExact != null ? montantHeuresSup(tauxExact, palier1, palier2) : null,
-                tauxExact != null ? montant(tauxExact, retenues) : null);
+                tauxExact != null ? montant(tauxExact, retenues) : null,
+                salaire != null
+                        ? CalculConge.montantJours(salaire, BigDecimal.valueOf((long) nonJustifies + sansSolde))
+                        : null,
+                indemnite);
     }
 
     /** Salaire mensuel / heures mensuelles, avec heures mensuelles = heures hebdo x 52 / 12 (173,33 h pour 40 h). */
@@ -402,6 +479,16 @@ public class TempsTravailService {
         return lundis;
     }
 
+    private static void verifierPeriode(LocalDate du, LocalDate au) {
+        if (au.isBefore(du)) {
+            throw ApiException.badRequest("PERIODE_INVALIDE", "La date de fin précède la date de début.");
+        }
+        if (ChronoUnit.DAYS.between(du, au) > PERIODE_ANOMALIES_MAX_JOURS) {
+            throw ApiException.badRequest("PERIODE_TROP_LONGUE",
+                    "La période ne peut pas dépasser " + PERIODE_ANOMALIES_MAX_JOURS + " jours.");
+        }
+    }
+
     private List<EmployeEmbauche> effectif() {
         return employeRepository.findAll().stream()
                 .filter(employe -> employe.getStatut() != StatutEmploye.SORTI)
@@ -435,13 +522,22 @@ public class TempsTravailService {
         }
         Map<Long, List<PlanningSalarie>> plannings = planningRepository.chevauchant(du, au).stream()
                 .collect(Collectors.groupingBy(planning -> planning.getEmploye().getId()));
-        return new Donnees(pointages, plannings, decisions);
+        Map<Long, List<DemandeConge>> conges = demandeCongeRepository.validesSurPeriode(du, au).stream()
+                .collect(Collectors.groupingBy(demande -> demande.getEmploye().getId()));
+        Map<Long, Map<LocalDate, Absence>> absences = new HashMap<>();
+        for (Absence absence : absenceRepository.findByDateAbsenceBetween(du, au)) {
+            absences.computeIfAbsent(absence.getEmploye().getId(), id -> new HashMap<>())
+                    .put(absence.getDateAbsence(), absence);
+        }
+        return new Donnees(pointages, plannings, decisions, conges, absences);
     }
 
     /** Tout ce qu'il faut pour une periode, charge une seule fois puis lu en memoire. */
     private record Donnees(Map<Long, Map<LocalDate, Pointage>> pointages,
                            Map<Long, List<PlanningSalarie>> plannings,
-                           Map<Long, Map<LocalDate, DecisionHeuresSup>> decisions) {
+                           Map<Long, Map<LocalDate, DecisionHeuresSup>> decisions,
+                           Map<Long, List<DemandeConge>> conges,
+                           Map<Long, Map<LocalDate, Absence>> absences) {
 
         Pointage pointage(EmployeEmbauche employe, LocalDate date) {
             return pointages.getOrDefault(employe.getId(), Map.of()).get(date);
@@ -453,6 +549,17 @@ public class TempsTravailService {
 
         DecisionHeuresSup decision(EmployeEmbauche employe, LocalDate lundi) {
             return decisions.getOrDefault(employe.getId(), Map.of()).get(lundi);
+        }
+
+        DemandeConge conge(EmployeEmbauche employe, LocalDate date) {
+            return conges.getOrDefault(employe.getId(), List.of()).stream()
+                    .filter(demande -> demande.couvre(date))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        Absence absence(EmployeEmbauche employe, LocalDate date) {
+            return absences.getOrDefault(employe.getId(), Map.of()).get(date);
         }
     }
 }

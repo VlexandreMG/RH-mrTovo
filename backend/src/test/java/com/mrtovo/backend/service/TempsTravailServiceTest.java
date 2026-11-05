@@ -19,8 +19,11 @@ import com.mrtovo.backend.entity.StatutHeuresSup;
 import com.mrtovo.backend.entity.TypeAnomaliePointage;
 import com.mrtovo.backend.entity.TypeContrat;
 import com.mrtovo.backend.exception.ApiException;
+import com.mrtovo.backend.repository.AbsenceRepository;
 import com.mrtovo.backend.repository.ContratRepository;
 import com.mrtovo.backend.repository.DecisionHeuresSupRepository;
+import com.mrtovo.backend.repository.DemandeCongeRepository;
+import com.mrtovo.backend.repository.DroitCongeRepository;
 import com.mrtovo.backend.repository.EmployeEmbaucheRepository;
 import com.mrtovo.backend.repository.PlanningSalarieRepository;
 import com.mrtovo.backend.repository.PointageRepository;
@@ -38,7 +41,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -75,7 +77,8 @@ class TempsTravailServiceTest {
         Clock horloge = Clock.fixed(AUJOURDHUI.atStartOfDay(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
 
         temps = new TempsTravailService(employeRepository, pointageRepository, planningRepository,
-                decisionRepository, contratRepository, new TempsTravailProperties(), horloge);
+                decisionRepository, contratRepository, mock(DemandeCongeRepository.class),
+                mock(AbsenceRepository.class), mock(DroitCongeRepository.class), new TempsTravailProperties(), horloge);
         pointages = new PointageService(employeRepository, pointageRepository, decisionRepository, temps, trace, horloge);
 
         employe = new EmployeEmbauche();
@@ -231,7 +234,9 @@ class TempsTravailServiceTest {
         // 2 080 000 x 12 / (52 x 40 h) = 12 000 Ar/h ; 3 h a 130 % = 46 800 Ar.
         assertEquals(new BigDecimal("12000.00"), variables.tauxHoraire());
         assertEquals(new BigDecimal("46800.00"), variables.montantHeuresSup());
-        assertFalse(variables.provisoire());
+        // Les autres semaines d'octobre n'ont pas de pointage : leurs absences restent a qualifier.
+        assertTrue(variables.provisoire());
+        assertEquals(15, variables.joursAbsenceAQualifier());
     }
 
     private void semaineTravaillee() {

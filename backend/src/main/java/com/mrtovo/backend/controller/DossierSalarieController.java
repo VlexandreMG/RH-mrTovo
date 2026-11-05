@@ -86,7 +86,17 @@ public class DossierSalarieController {
 
     @GetMapping("/documents/{documentId}/fichier")
     public ResponseEntity<Resource> telecharger(@PathVariable Long documentId, Authentication auth) {
-        DossierSalarieService.FichierTelecharge fichier = service.telechargerDocument(documentId, auth.getName());
+        return reponseFichier(service.telechargerDocument(documentId, auth.getName()));
+    }
+
+    @DeleteMapping("/documents/{documentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void supprimerDocument(@PathVariable Long documentId, Authentication auth) {
+        service.supprimerDocument(documentId, auth.getName());
+    }
+
+    /** Partage avec le Bloc 7 : meme protection pour tous les fichiers confidentiels. */
+    static ResponseEntity<Resource> reponseFichier(DossierSalarieService.FichierTelecharge fichier) {
         ContentDisposition disposition = ContentDisposition.attachment()
                 .filename(fichier.nomFichier(), StandardCharsets.UTF_8)
                 .build();
@@ -97,11 +107,5 @@ public class DossierSalarieController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .header("X-Content-Type-Options", "nosniff")
                 .body(fichier.ressource());
-    }
-
-    @DeleteMapping("/documents/{documentId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void supprimerDocument(@PathVariable Long documentId, Authentication auth) {
-        service.supprimerDocument(documentId, auth.getName());
     }
 }

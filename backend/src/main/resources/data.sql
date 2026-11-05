@@ -133,5 +133,16 @@ INSERT INTO horaire_regime (regime_id, jour_semaine, heure_debut, heure_fin, pau
 (2, 4, '08:00', '16:00', 60), (2, 5, '08:00', '16:00', 60), (2, 6, '08:00', '13:00', 0)
 ON CONFLICT DO NOTHING;
 
+-- ==========================================
+-- 8. BLOC 7 : TYPES DE CONGE
+-- ==========================================
+INSERT INTO type_conge (id, code, libelle, decompte_solde, remunere, justificatif_requis, plafond_annuel_jours) VALUES
+(1, 'CONGE_PAYE', 'Congé payé', TRUE, TRUE, FALSE, NULL),
+(2, 'MALADIE', 'Congé maladie', FALSE, TRUE, TRUE, NULL),
+(3, 'PERMISSION', 'Permission exceptionnelle', FALSE, TRUE, TRUE, 10),
+(4, 'SANS_SOLDE', 'Congé sans solde', FALSE, FALSE, FALSE, NULL) ON CONFLICT DO NOTHING;
+
+SELECT setval('type_conge_id_seq', (SELECT MAX(id) FROM type_conge));
+
 -- Remet le search_path par défaut : la connexion retourne au pool et sert ensuite au Bloc 1 (schéma public).
 RESET search_path;

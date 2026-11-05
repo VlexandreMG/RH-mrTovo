@@ -115,11 +115,25 @@ const router = createRouter({
           meta: { roles: ['RH'] }
         },
         {
+          path: 'bloc7/conges',
+          name: 'bloc7-conges',
+          component: () => import('@/views/CongesView.vue'),
+          meta: { roles: ['RH', 'MANAGER'] }
+        },
+        {
           path: 'bloc3/contrats',
           name: 'bloc3-contrats',
           component: () => import('@/views/ContratsView.vue'),
           meta: { roles: ['RH'] }
         }
+      ]
+    },
+    {
+      path: '/salarie',
+      component: () => import('@/layouts/SalarieLayout.vue'),
+      meta: { requiresAuth: true, roles: ['EMPLOYE'] },
+      children: [
+        { path: '', name: 'espace-salarie', component: () => import('@/views/salarie/EspaceSalarieView.vue') }
       ]
     },
     { path: '/:pathMatch(.*)*', redirect: '/' }
@@ -128,6 +142,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+  if (auth.role === 'EMPLOYE' && !to.path.startsWith('/salarie')) return '/salarie'
   if (auth.role === 'CANDIDAT' && to.path !== '/candidats/espace'
       && !to.path.startsWith('/candidats/offres')) return '/candidats/espace'
   if (auth.role === 'CANDIDAT' && to.path === '/login') return '/candidats/espace'

@@ -21,7 +21,8 @@ const menu = computed(() => [
         { to: '/bloc5/dossiers', label: 'Dossiers salariés', icon: 'users' },
         { to: '/bloc6/temps', label: 'Temps de travail', icon: 'clock' }
       ]
-    : [])
+    : []),
+  ...(['RH', 'MANAGER'].includes(auth.role) ? [{ to: '/bloc7/conges', label: 'Congés', icon: 'history' }] : [])
 ])
 
 function isActive(m) {

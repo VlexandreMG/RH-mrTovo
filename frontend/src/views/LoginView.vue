@@ -33,7 +33,8 @@ async function connexion() {
   chargement.value = true
   try {
     await auth.login(email.value.trim(), motDePasse.value)
-    router.push(auth.role === 'CANDIDAT' ? '/candidats/espace' : '/')
+    const accueil = { CANDIDAT: '/candidats/espace', EMPLOYE: '/salarie' }
+    router.push(accueil[auth.role] ?? '/')
   } catch (e) {
     erreur.value = e.message.includes('serveur') ? e.message : 'Email ou mot de passe incorrect.'
   } finally {

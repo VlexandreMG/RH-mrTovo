@@ -580,7 +580,7 @@ public class DossierSalarieService {
         return valeur.trim();
     }
 
-    private static String nomFichierSur(String nomOriginal) {
+    static String nomFichierSur(String nomOriginal) {
         if (nomOriginal == null) {
             return null;
         }
@@ -610,7 +610,7 @@ public class DossierSalarieService {
     }
 
     /** Le fichier a ete ecrit sur disque : si la transaction echoue, on le retire pour ne pas laisser d'orphelin. */
-    private static void apresAnnulation(Runnable action) {
+    static void apresAnnulation(Runnable action) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
@@ -624,7 +624,7 @@ public class DossierSalarieService {
     }
 
     /** On ne supprime le fichier qu'une fois la suppression en base validee (sinon le document resterait sans fichier). */
-    private static void apresValidation(Runnable action) {
+    static void apresValidation(Runnable action) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override

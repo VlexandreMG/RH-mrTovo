@@ -38,4 +38,9 @@ public class Utilisateur {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_candidat", unique = true)
     private Candidat candidat;
+
+    // Bloc 7 : renseigne pour les comptes salaries. Le salarie est toujours deduit du compte connecte.
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_employe", unique = true)
+    private EmployeEmbauche employe;
 }
