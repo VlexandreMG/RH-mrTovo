@@ -4,6 +4,8 @@
 
 ![Plan du Bloc 7](./BLOC7-PLAN.png)
 
+Le calendrier des congés a sa propre documentation : [`BLOC7-CALENDRIER.md`](./BLOC7-CALENDRIER.md).
+
 ---
 
 ## Sommaire
@@ -954,7 +956,7 @@ L'écran montre quatre compteurs, le formulaire de demande, l'historique avec le
 
 ### 18.4 `views/CongesView.vue`
 
-Le manager ne voit que les demandes ; le RH a quatre onglets. La barre d'onglets est masquée pour le manager.
+Le manager a deux onglets, **Demandes** et **Calendrier** ; le RH en a cinq. Le calendrier a sa propre documentation : [`BLOC7-CALENDRIER.md`](./BLOC7-CALENDRIER.md).
 
 ### 18.5 `components/conges/DemandesConge.vue`
 
@@ -1043,7 +1045,7 @@ cd backend
 ./mvnw test -Dtest='CalculCongeTest,CongeServiceTest,CompteSalarieServiceTest'
 ```
 
-Résultat sur tout le backend (Blocs 1 à 7) : **73 tests, 0 échec**. Les tests d'intégration ont besoin d'une base PostgreSQL.
+Résultat sur tout le backend (Blocs 1 à 7, calendrier compris) : **86 tests, 0 échec**. Les tests d'intégration ont besoin d'une base PostgreSQL.
 
 ### Parcours dans un vrai navigateur
 
@@ -1250,7 +1252,7 @@ Un jour non justifié : 1 250 000 / 30 ≈ **41 667 Ar** retirés de la paie.
    Chaque script ne fait rien si ses données existent déjà. Le dernier crée les comptes d'Aina et de Luc, avec le mot de passe `salarie123`, et une demande de Luc en attente du manager.
 4. **Salarié** : `aina.ranaivo@gmail.com` / `salarie123`. Faire une demande, tester un chevauchement et un dépassement de solde.
 5. **Manager** : `manager.informatique@rh.com` / `manager123`, menu **Congés**. Accepter. Un manager d'un autre département ne voit rien.
-6. **RH** : `rh@rh.com` / `rh123`, menu **Congés**. Décider, puis parcourir **Absences**, **Soldes et comptes** et **Types de congé**.
+6. **RH** : `rh@rh.com` / `rh123`, menu **Congés**. Décider, puis parcourir **Calendrier**, **Absences**, **Soldes et comptes** et **Types de congé**.
 7. **Bloc 6** : le congé apparaît dans **Pointages** ; **Variables de paie** montre retenues et indemnités.
 8. **Audit** : dans **Dossiers salariés**, onglet Journal d'audit, toutes les actions figurent.
 

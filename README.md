@@ -54,3 +54,6 @@ Documentation complète : [`docs/BLOC6-TEMPS-DE-TRAVAIL.md`](./docs/BLOC6-TEMPS-
 
 Chaque salarié a son **espace** : il consulte son solde et demande ses congés. Le **manager** de son département donne son avis, puis le **RH** décide (menu **Congés**). Le RH qualifie aussi les absences, gère les soldes, indemnise les jours non pris (salaire brut × jours / 30) et crée les comptes salariés. Congés et absences alimentent le planning et les variables de paie du Bloc 6.
 Documentation complète : [`docs/BLOC7-CONGES-ABSENCES.md`](./docs/BLOC7-CONGES-ABSENCES.md). Plan : [`docs/BLOC7-PLAN.png`](./docs/BLOC7-PLAN.png).
+
+Le menu **Congés** propose aussi un **calendrier** : une ligne par salarié, avec congés, demandes en attente, absences et présents du jour. Le RH voit tout le détail ; le manager voit seulement son département et le mot « Absent ».
+Documentation : [`docs/BLOC7-CALENDRIER.md`](./docs/BLOC7-CALENDRIER.md). Plan : [`docs/BLOC7-CALENDRIER-PLAN.png`](./docs/BLOC7-CALENDRIER-PLAN.png).

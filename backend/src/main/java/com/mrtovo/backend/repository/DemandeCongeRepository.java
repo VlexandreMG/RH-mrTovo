@@ -38,4 +38,15 @@ public interface DemandeCongeRepository extends JpaRepository<DemandeConge, Long
               and d.dateDebut <= :au and d.dateFin >= :du
             """)
     List<DemandeConge> validesSurPeriode(@Param("du") LocalDate du, @Param("au") LocalDate au);
+
+    /** Toutes les demandes dans ces etats qui touchent la periode : elles alimentent le calendrier. */
+    @EntityGraph(attributePaths = "typeConge")
+    @Query("""
+            select d from DemandeConge d
+            where d.statut in :statuts
+              and d.dateDebut <= :au and d.dateFin >= :du
+            """)
+    List<DemandeConge> surPeriode(@Param("du") LocalDate du,
+                                  @Param("au") LocalDate au,
+                                  @Param("statuts") Collection<StatutDemandeConge> statuts);
 }

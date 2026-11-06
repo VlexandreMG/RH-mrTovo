@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import DemandesConge from '@/components/conges/DemandesConge.vue'
+import CalendrierConges from '@/components/conges/CalendrierConges.vue'
 import AbsencesAQualifier from '@/components/conges/AbsencesAQualifier.vue'
 import SoldesConges from '@/components/conges/SoldesConges.vue'
 import TypesConge from '@/components/conges/TypesConge.vue'
@@ -9,12 +10,17 @@ import TypesConge from '@/components/conges/TypesConge.vue'
 const auth = useAuthStore()
 const estRh = computed(() => auth.role === 'RH')
 
-const ONGLETS_RH = [
+const ONGLETS_MANAGER = [
   { cle: 'demandes', libelle: 'Demandes' },
+  { cle: 'calendrier', libelle: 'Calendrier' }
+]
+const ONGLETS_RH = [
+  ...ONGLETS_MANAGER,
   { cle: 'absences', libelle: 'Absences' },
   { cle: 'soldes', libelle: 'Soldes et comptes' },
   { cle: 'types', libelle: 'Types de congé' }
 ]
+const onglets = computed(() => (estRh.value ? ONGLETS_RH : ONGLETS_MANAGER))
 const onglet = ref('demandes')
 </script>
 
@@ -28,9 +34,9 @@ const onglet = ref('demandes')
       </div>
     </header>
 
-    <nav v-if="estRh" class="onglets" role="tablist">
+    <nav class="onglets" role="tablist">
       <button
-        v-for="o in ONGLETS_RH"
+        v-for="o in onglets"
         :key="o.cle"
         role="tab"
         :aria-selected="onglet === o.cle"
@@ -42,6 +48,7 @@ const onglet = ref('demandes')
     </nav>
 
     <DemandesConge v-if="onglet === 'demandes'" />
+    <CalendrierConges v-else-if="onglet === 'calendrier'" @aller="onglet = $event" />
     <AbsencesAQualifier v-else-if="onglet === 'absences'" />
     <SoldesConges v-else-if="onglet === 'soldes'" />
     <TypesConge v-else />

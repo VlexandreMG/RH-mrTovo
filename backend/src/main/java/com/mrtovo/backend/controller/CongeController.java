@@ -3,6 +3,7 @@ package com.mrtovo.backend.controller;
 import com.mrtovo.backend.dto.AbsenceDto;
 import com.mrtovo.backend.dto.AjustementDroitRequest;
 import com.mrtovo.backend.dto.AnnulationCongeRequest;
+import com.mrtovo.backend.dto.CalendrierCongeDto;
 import com.mrtovo.backend.dto.CompteSalarieRequest;
 import com.mrtovo.backend.dto.DecisionCongeRequest;
 import com.mrtovo.backend.dto.DemandeCongeDto;
@@ -13,6 +14,7 @@ import com.mrtovo.backend.dto.TypeCongeDto;
 import com.mrtovo.backend.dto.TypeCongeRequest;
 import com.mrtovo.backend.entity.StatutAbsence;
 import com.mrtovo.backend.service.AbsenceService;
+import com.mrtovo.backend.service.CalendrierCongeService;
 import com.mrtovo.backend.service.CompteSalarieService;
 import com.mrtovo.backend.service.CongeService;
 import com.mrtovo.backend.service.SoldeCongeService;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -49,20 +52,31 @@ public class CongeController {
     private final SoldeCongeService soldeService;
     private final AbsenceService absenceService;
     private final CompteSalarieService compteService;
+    private final CalendrierCongeService calendrierService;
 
     public CongeController(CongeService congeService,
                            SoldeCongeService soldeService,
                            AbsenceService absenceService,
-                           CompteSalarieService compteService) {
+                           CompteSalarieService compteService,
+                           CalendrierCongeService calendrierService) {
         this.congeService = congeService;
         this.soldeService = soldeService;
         this.absenceService = absenceService;
         this.compteService = compteService;
+        this.calendrierService = calendrierService;
     }
 
     @GetMapping("/demandes")
     public List<DemandeCongeDto> demandes(Authentication auth) {
         return congeService.demandesPour(auth.getName());
+    }
+
+    /** Ouvert au manager : le service limite a son departement et retire ce qu'il n'a pas a voir. */
+    @GetMapping("/calendrier")
+    public CalendrierCongeDto calendrier(@RequestParam @DateTimeFormat(pattern = "yyyy-MM") YearMonth mois,
+                                         @RequestParam(required = false) String departement,
+                                         Authentication auth) {
+        return calendrierService.calendrier(mois, departement, auth.getName());
     }
 
     @PostMapping("/demandes/{id}/avis")

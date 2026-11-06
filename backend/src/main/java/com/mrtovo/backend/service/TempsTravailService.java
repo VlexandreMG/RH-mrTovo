@@ -190,6 +190,33 @@ public class TempsTravailService {
     public record JourAQualifier(EmployeEmbauche employe, LocalDate date) {
     }
 
+    /** Bloc 7 : les jours d'une periode pour tout l'effectif, avec le calcul du Bloc 6 : le calendrier ne le refait pas. */
+    public List<JoursSalarie> joursDeLEffectif(LocalDate du, LocalDate au) {
+        verifierPeriode(du, au);
+        LocalDate aujourdhui = LocalDate.now(horloge);
+        LocalDate premierLundi = lundiDe(du);
+        LocalDate dernierLundi = lundiDe(au);
+        Donnees donnees = chargerDonnees(premierLundi, dernierLundi.plusDays(6));
+
+        List<JoursSalarie> resultat = new ArrayList<>();
+        for (EmployeEmbauche employe : effectif()) {
+            if (employe.getDateEntree().isAfter(au)) {
+                continue;
+            }
+            List<JourTempsDto> jours = new ArrayList<>();
+            for (LocalDate lundi = premierLundi; !lundi.isAfter(dernierLundi); lundi = lundi.plusWeeks(1)) {
+                calculerSemaine(employe, lundi, donnees, aujourdhui).jours().stream()
+                        .filter(jour -> !jour.date().isBefore(du) && !jour.date().isAfter(au))
+                        .forEach(jours::add);
+            }
+            resultat.add(new JoursSalarie(employe, jours));
+        }
+        return resultat;
+    }
+
+    public record JoursSalarie(EmployeEmbauche employe, List<JourTempsDto> jours) {
+    }
+
     /**
      * Variables transmises a la paie. Une semaine appartient au mois de son lundi :
      * elle n'est ainsi jamais coupee en deux, ce qui garde la compensation hebdomadaire exacte.

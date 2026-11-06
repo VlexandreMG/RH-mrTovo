@@ -356,7 +356,7 @@ public class CongeService {
     }
 
     /** Les departements du Bloc 1 et du Bloc 3 sont deux tables distinctes : on les relie par leur nom. */
-    private static boolean memeDepartement(Utilisateur manager, EmployeEmbauche employe) {
+    static boolean memeDepartement(Utilisateur manager, EmployeEmbauche employe) {
         return manager.getDepartement() != null && employe.getDepartement() != null
                 && manager.getDepartement().getNom().equalsIgnoreCase(employe.getDepartement().getNom());
     }

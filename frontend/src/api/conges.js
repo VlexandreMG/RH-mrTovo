@@ -5,6 +5,7 @@ const BASE = '/bloc7'
 
 export const congesApi = {
   demandes: () => apiGet(`${BASE}/demandes`),
+  calendrier: (mois, departement) => apiGet(`${BASE}/calendrier?mois=${mois}${departement ? `&departement=${encodeURIComponent(departement)}` : ''}`),
   avisManager: (id, decision) => apiPost(`${BASE}/demandes/${id}/avis`, decision),
   justificatif: (id) => apiGetBlob(`${BASE}/demandes/${id}/justificatif`),
   decisionRh: (id, decision) => apiPost(`${BASE}/rh/demandes/${id}/decision`, decision),
