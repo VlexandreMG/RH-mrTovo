@@ -29,9 +29,9 @@ const nbJours = computed(() => {
 async function charger() {
   erreur.value = ''
   try {
-    const [moi, liste] = await Promise.all([salarieApi.moi(), salarieApi.demandes()])
+    const moi = await salarieApi.moi()
     profil.value = moi
-    demandes.value = liste
+    demandes.value = await salarieApi.demandes()
     if (!formulaire.typeCongeId && moi.types.length) {
       formulaire.typeCongeId = (moi.types.find((t) => t.code === 'CONGE_PAYE') ?? moi.types[0]).id
     }

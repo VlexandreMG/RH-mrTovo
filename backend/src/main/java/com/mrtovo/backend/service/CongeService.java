@@ -313,7 +313,8 @@ public class CongeService {
                     + conflit.getDateDebut() + " → " + conflit.getDateFin() + ").");
         }
 
-        if (type.isDecompteSolde()) {
+        // Un dossier minimal (compte non salarie) n'a pas de solde a decompte : la demande part au RH.
+        if (type.isDecompteSolde() && !employe.isDossierMinimal()) {
             BigDecimal disponible = soldeService.solde(employe.getId()).disponible();
             if (demandeId != null) {
                 // Une demande en attente est deja deduite du disponible : on la remet avant de comparer.

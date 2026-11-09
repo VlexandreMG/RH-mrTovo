@@ -18,11 +18,13 @@ const menu = computed(() => [
   { to: '/bloc3/dashboard', label: 'Recrutement', icon: 'briefcase' },
   ...(auth.role === 'RH'
     ? [
+        { to: '/bloc3/contrats', label: 'Contrats', icon: 'file' },
         { to: '/bloc5/dossiers', label: 'Dossiers salariés', icon: 'users' },
         { to: '/bloc6/temps', label: 'Temps de travail', icon: 'clock' }
       ]
     : []),
-  ...(['RH', 'MANAGER'].includes(auth.role) ? [{ to: '/bloc7/conges', label: 'Congés', icon: 'history' }] : [])
+  ...(['RH', 'MANAGER'].includes(auth.role) ? [{ to: '/bloc7/conges', label: 'Congés', icon: 'history' }] : []),
+  { to: '/conges/nouvelle', label: 'Demander un congé', icon: 'file' }
 ])
 
 function isActive(m) {

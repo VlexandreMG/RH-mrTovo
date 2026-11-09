@@ -25,12 +25,12 @@ public class EmployeEmbauche {
     @Column(nullable = false, unique = true)
     private String matricule;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "candidat_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidat_id", unique = true)
     private CandidatRecrutement candidat;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "proposition_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proposition_id", unique = true)
     private PropositionOffre proposition;
 
     @Column(nullable = false)
@@ -69,6 +69,10 @@ public class EmployeEmbauche {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatutEmploye statut = StatutEmploye.EN_PERIODE_DESSAI;
+
+    /** Bloc 7 : dossier cree pour un compte non salarie (RH, manager...), sans solde a decompte. */
+    @Column(name = "dossier_minimal", nullable = false)
+    private boolean dossierMinimal = false;
 
     // ----- Bloc 5 : identite complete du dossier administratif -----
 
@@ -227,6 +231,14 @@ public class EmployeEmbauche {
 
     public void setStatut(StatutEmploye statut) {
         this.statut = statut;
+    }
+
+    public boolean isDossierMinimal() {
+        return dossierMinimal;
+    }
+
+    public void setDossierMinimal(boolean dossierMinimal) {
+        this.dossierMinimal = dossierMinimal;
     }
 
     public LocalDate getDateNaissance() {

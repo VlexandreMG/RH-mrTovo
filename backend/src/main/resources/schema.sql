@@ -264,8 +264,8 @@ CREATE TABLE IF NOT EXISTS mrtovo.historique_negociation (
 CREATE TABLE IF NOT EXISTS mrtovo.employe (
     id BIGSERIAL PRIMARY KEY,
     matricule VARCHAR(50) NOT NULL UNIQUE,
-    candidat_id BIGINT NOT NULL UNIQUE REFERENCES mrtovo.candidat(id),
-    proposition_id BIGINT NOT NULL UNIQUE REFERENCES mrtovo.proposition_offre(id),
+    candidat_id BIGINT UNIQUE REFERENCES mrtovo.candidat(id),
+    proposition_id BIGINT UNIQUE REFERENCES mrtovo.proposition_offre(id),
     nom VARCHAR(255) NOT NULL,
     prenom VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -277,8 +277,14 @@ CREATE TABLE IF NOT EXISTS mrtovo.employe (
     date_entree DATE NOT NULL,
     date_fin_contrat DATE,
     date_fin_periode_essai DATE,
-    statut VARCHAR(30) NOT NULL DEFAULT 'EN_PERIODE_DESSAI'
+    statut VARCHAR(30) NOT NULL DEFAULT 'EN_PERIODE_DESSAI',
+    dossier_minimal BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+-- Bloc 7 : un compte sans dossier de recrutement reçoit un dossier minimal pour demander ses congés.
+ALTER TABLE mrtovo.employe ALTER COLUMN candidat_id DROP NOT NULL;
+ALTER TABLE mrtovo.employe ALTER COLUMN proposition_id DROP NOT NULL;
+ALTER TABLE mrtovo.employe ADD COLUMN IF NOT EXISTS dossier_minimal BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS mrtovo.contrat (
     id BIGSERIAL PRIMARY KEY,
