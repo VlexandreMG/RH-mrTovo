@@ -54,6 +54,8 @@ export const STATUTS = {
 }
 
 export const ROLES = {
+  EMPLOYE: 'Salarié',
+  CANDIDAT: 'Candidat',
   MANAGER: 'Manager',
   RH: 'Ressources humaines',
   FINANCE: 'Finance',

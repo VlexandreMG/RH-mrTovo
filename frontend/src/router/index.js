@@ -130,19 +130,18 @@ const router = createRouter({
           name: 'bloc3-contrats',
           component: () => import('@/views/ContratsView.vue'),
           meta: { roles: ['RH'] }
-        }
-      ]
-    },
-    {
-      path: '/salarie',
-      component: () => import('@/layouts/SalarieLayout.vue'),
-      meta: { requiresAuth: true, roles: ['EMPLOYE'] },
-      children: [
-        { path: '', name: 'espace-salarie', component: () => import('@/views/salarie/EspaceSalarieView.vue') },
+        },
         {
-          path: 'demande-conge',
+          path: 'salarie',
+          name: 'espace-salarie',
+          component: () => import('@/views/salarie/EspaceSalarieView.vue'),
+          meta: { roles: ['EMPLOYE', 'RH', 'MANAGER', 'FINANCE', 'DIRECTION'] }
+        },
+        {
+          path: 'salarie/demande-conge',
           name: 'salarie-demande-conge',
-          component: () => import('@/views/conges/NouvelleDemandeCongeView.vue')
+          component: () => import('@/views/conges/NouvelleDemandeCongeView.vue'),
+          meta: { roles: ['EMPLOYE', 'RH', 'MANAGER', 'FINANCE', 'DIRECTION'] }
         }
       ]
     },
