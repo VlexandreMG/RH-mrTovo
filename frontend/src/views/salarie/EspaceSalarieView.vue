@@ -2,13 +2,14 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { salarieApi } from '@/api/salarie'
 import { useToastStore } from '@/stores/toast'
-import { date as formatDate, nb } from '@/utils/format'
+import { ar, date as formatDate, dateHeure, nb } from '@/utils/format'
 import { enregistrerBlob } from '@/utils/fichier'
 import StatutBadge from '@/components/RecrutementStatutBadge.vue'
 
 const toast = useToastStore()
 const profil = ref(null)
 const demandes = ref([])
+const mouvements = ref([])
 const erreur = ref('')
 const envoi = ref(false)
 
@@ -32,6 +33,7 @@ async function charger() {
     const moi = await salarieApi.moi()
     profil.value = moi
     demandes.value = await salarieApi.demandes()
+    mouvements.value = await salarieApi.mouvements()
     if (!formulaire.typeCongeId && moi.types.length) {
       formulaire.typeCongeId = (moi.types.find((t) => t.code === 'CONGE_PAYE') ?? moi.types[0]).id
     }
@@ -116,11 +118,50 @@ onMounted(charger)
       </div>
     </header>
 
-    <div class="b3-grid b3-grid-4 compteurs">
-      <div class="b3-kpi"><span>Disponible</span><strong>{{ nb(solde.disponible) }} j</strong><small>à demander</small></div>
-      <div class="b3-kpi"><span>Solde</span><strong>{{ nb(solde.solde) }} j</strong><small>{{ nb(solde.joursEnAttente) }} j en attente</small></div>
-      <div class="b3-kpi"><span>Acquis</span><strong>{{ nb(solde.joursAcquis) }} j</strong><small>{{ solde.moisComplets }} mois de service</small></div>
-      <div class="b3-kpi"><span>Pris</span><strong>{{ nb(solde.joursPris) }} j</strong><small>congés validés</small></div>
+    <template v-if="profil.soldeSuivi">
+      <div class="b3-grid b3-grid-4 compteurs">
+        <div class="b3-kpi"><span>Disponible</span><strong>{{ nb(solde.disponible) }} j</strong><small>à demander</small></div>
+        <div class="b3-kpi"><span>Solde</span><strong>{{ nb(solde.solde) }} j</strong><small>{{ nb(solde.joursEnAttente) }} j en attente</small></div>
+        <div class="b3-kpi"><span>Acquis</span><strong>{{ nb(solde.joursAcquis) }} j</strong><small>{{ solde.moisComplets }} mois de service</small></div>
+        <div class="b3-kpi"><span>Pris</span><strong>{{ nb(solde.joursPris) }} j</strong><small>congés validés</small></div>
+      </div>
+
+      <div class="b3-card">
+        <h2>Détail de mon solde de congés</h2>
+        <dl class="b3-detail-list">
+          <div><dt>Jours acquis</dt><dd>{{ nb(solde.joursAcquis) }} j ({{ solde.moisComplets }} mois de service)</dd></div>
+          <div><dt>Ajustements RH</dt><dd>{{ nb(solde.joursAjustes) }} j</dd></div>
+          <div><dt>Congés validés</dt><dd>-{{ nb(solde.joursPris) }} j</dd></div>
+          <div><dt>Jours indemnisés</dt><dd>-{{ nb(solde.joursIndemnises) }} j</dd></div>
+          <div><dt>Solde</dt><dd><strong>{{ nb(solde.solde) }} j</strong></dd></div>
+          <div><dt>Demandes en attente</dt><dd>-{{ nb(solde.joursEnAttente) }} j</dd></div>
+          <div><dt>Disponible</dt><dd><strong>{{ nb(solde.disponible) }} j</strong></dd></div>
+          <div><dt>Indemnité compensatrice</dt><dd>{{ ar(solde.indemniteCompensatrice) }}</dd></div>
+        </dl>
+      </div>
+
+      <div class="b3-card">
+        <h2>Mes mouvements de solde</h2>
+        <div class="b3-table-wrapper">
+          <table class="b3-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Jours</th><th>Motif</th><th>Montant</th><th>Par</th></tr></thead>
+            <tbody>
+              <tr v-for="mouvement in mouvements" :key="mouvement.id">
+                <td>{{ dateHeure(mouvement.dateCreation) }}</td>
+                <td>{{ mouvement.typeDroit === 'INDEMNISATION' ? 'Indemnisation' : 'Ajustement' }}</td>
+                <td>{{ mouvement.jours }}</td>
+                <td>{{ mouvement.motif }}</td>
+                <td class="b3-money">{{ ar(mouvement.montant) }}</td>
+                <td>{{ mouvement.creePar }}</td>
+              </tr>
+              <tr v-if="!mouvements.length"><td colspan="6" class="b3-empty">Aucun mouvement de solde.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+    <div v-else class="b3-alert">
+      Votre compte n'est pas rattaché à un dossier issu du recrutement : aucun solde de congés n'est suivi.
     </div>
 
     <div class="b3-card">
