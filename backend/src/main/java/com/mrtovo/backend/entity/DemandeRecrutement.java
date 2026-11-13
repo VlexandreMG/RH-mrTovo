@@ -57,7 +57,7 @@ public class DemandeRecrutement {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private StatutDemande statut = StatutDemande.EN_ATTENTE_RH;
+    private StatutDemande statut = StatutDemande.EN_ATTENTE_DIRECTION;
 
     @Column(name = "date_creation", nullable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();

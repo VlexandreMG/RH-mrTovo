@@ -38,7 +38,7 @@ public class DemandeController {
     }
 
     @PostMapping("/{id}/validations")
-    @PreAuthorize("hasAnyRole('RH','FINANCE','DIRECTION')")
+    @PreAuthorize("hasRole('DIRECTION')")
     public DemandeDto valider(@PathVariable Long id, @RequestBody ValidationRequest request, Authentication auth) {
         return demandeService.valider(id, request, auth.getName());
     }

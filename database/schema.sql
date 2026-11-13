@@ -61,7 +61,7 @@ CREATE TABLE demande_recrutement (
     id_employe_remplace  BIGINT REFERENCES employe(id_employe),
     budget_demande_total NUMERIC(14,2) NOT NULL CHECK (budget_demande_total >= 0),
     date_souhaitee       DATE NOT NULL,
-    statut               VARCHAR(30) NOT NULL DEFAULT 'EN_ATTENTE_RH' CHECK (statut IN
+    statut               VARCHAR(30) NOT NULL DEFAULT 'EN_ATTENTE_DIRECTION' CHECK (statut IN
         ('EN_ATTENTE_RH','EN_ATTENTE_FINANCE','EN_ATTENTE_DIRECTION','REFUSEE','AUTORISEE','RECRUTEMENT_OUVERT')),
     date_creation        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     date_ouverture       TIMESTAMP

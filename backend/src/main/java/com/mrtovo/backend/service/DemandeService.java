@@ -12,10 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -27,7 +25,6 @@ public class DemandeService {
     private final NiveauPosteRepository niveauRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final EmployeRepository employeRepository;
-    private final GrilleService grilleService;
     private final OffreEmploiRepository offreRepository;
     private final StatutOffreEmploiRepository statutOffreRepository;
 
@@ -37,7 +34,6 @@ public class DemandeService {
                           NiveauPosteRepository niveauRepository,
                           UtilisateurRepository utilisateurRepository,
                           EmployeRepository employeRepository,
-                          GrilleService grilleService,
                           OffreEmploiRepository offreRepository,
                           StatutOffreEmploiRepository statutOffreRepository) {
         this.demandeRepository = demandeRepository;
@@ -46,7 +42,6 @@ public class DemandeService {
         this.niveauRepository = niveauRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.employeRepository = employeRepository;
-        this.grilleService = grilleService;
         this.offreRepository = offreRepository;
         this.statutOffreRepository = statutOffreRepository;
     }
@@ -95,7 +90,7 @@ if (departement == null) {
         demande.setMotif(req.motif().trim());
         demande.setBudgetDemandeTotal(req.budgetDemandeTotal());
         demande.setDateSouhaitee(req.dateSouhaitee());
-        demande.setStatut(StatutDemande.EN_ATTENTE_RH);
+        demande.setStatut(StatutDemande.EN_ATTENTE_DIRECTION);
         demande.setDateCreation(LocalDateTime.now());
 
         if (type == TypeBesoin.REMPLACEMENT && req.idEmployeARemplacer() != null) {
@@ -171,26 +166,28 @@ if (departement == null) {
     // ------------------------------------------------------------------ Workflow
 
     /**
-     * RH → Finance → Direction. RH et Finance donnent un AVIS (même défavorable, la demande continue) ;
-     * la Direction rend la décision finale sur la demande entière.
+     * Seule la Direction accepte ou refuse la demande. Le RH et la Finance sont en lecture seule :
+     * ils consultent le dossier mais ne peuvent plus le valider.
      */
     @Transactional
     public DemandeDto valider(Long idDemande, ValidationRequest req, String email) {
         Utilisateur validateur = utilisateur(email);
+        if (validateur.getRole() != RoleUtilisateur.DIRECTION) {
+            throw new BusinessException("Seule la Direction peut accepter ou refuser une demande de recrutement.");
+        }
         DemandeRecrutement demande = demande(idDemande);
 
-        EtapeValidation etape = switch (demande.getStatut()) {
-            case EN_ATTENTE_RH -> EtapeValidation.RH;
-            case EN_ATTENTE_FINANCE -> EtapeValidation.FINANCE;
-            case EN_ATTENTE_DIRECTION -> EtapeValidation.DIRECTION;
-            default -> throw new BusinessException("Cette demande n'est plus en cours de validation.");
+        boolean enAttente = switch (demande.getStatut()) {
+            case EN_ATTENTE_RH, EN_ATTENTE_FINANCE, EN_ATTENTE_DIRECTION -> true;
+            default -> false;
         };
-        if (!validateur.getRole().name().equals(etape.name())) {
-            throw new BusinessException("Cette étape est réservée au rôle " + etape + ".");
+        if (!enAttente) {
+            throw new BusinessException("Cette demande n'est plus en cours de validation.");
         }
-        boolean dejaFait = demande.getValidations().stream().anyMatch(v -> v.getEtape() == etape);
+        boolean dejaFait = demande.getValidations().stream()
+                .anyMatch(v -> v.getEtape() == EtapeValidation.DIRECTION);
         if (dejaFait) {
-            throw new BusinessException("Cette étape a déjà été traitée pour cette demande.");
+            throw new BusinessException("La Direction a déjà traité cette demande.");
         }
 
         DecisionValidation decision;
@@ -201,28 +198,20 @@ if (departement == null) {
         }
         String commentaire = req.commentaire() == null ? "" : req.commentaire().trim();
         if (decision == DecisionValidation.DEFAVORABLE && commentaire.isEmpty()) {
-            throw new BusinessException("Un commentaire est obligatoire pour un avis défavorable.");
-        }
-
-        if (etape == EtapeValidation.RH) {
-            estimer(demande, req.estimations(), decision == DecisionValidation.FAVORABLE);
+            throw new BusinessException("Un commentaire est obligatoire pour une décision défavorable.");
         }
 
         Validation validation = new Validation();
         validation.setDemande(demande);
         validation.setValidateur(validateur);
-        validation.setEtape(etape);
+        validation.setEtape(EtapeValidation.DIRECTION);
         validation.setDecision(decision);
         validation.setCommentaire(commentaire.isEmpty() ? null : commentaire);
         validation.setDateValidation(LocalDateTime.now());
         demande.getValidations().add(validation);
 
-        demande.setStatut(switch (etape) {
-            case RH -> StatutDemande.EN_ATTENTE_FINANCE;
-            case FINANCE -> StatutDemande.EN_ATTENTE_DIRECTION;
-            case DIRECTION -> decision == DecisionValidation.FAVORABLE
-                    ? StatutDemande.AUTORISEE : StatutDemande.REFUSEE;
-        });
+        demande.setStatut(decision == DecisionValidation.FAVORABLE
+                ? StatutDemande.AUTORISEE : StatutDemande.REFUSEE);
         if (demande.getStatut() == StatutDemande.REFUSEE) {
             changerStatutOffre(demande, Statuts.OffreEmploi.FERMEE);
         }
@@ -276,59 +265,6 @@ if (departement == null) {
                 offre.setDatePublication(LocalDate.now());
             }
         });
-    }
-
-    /**
-     * Estimation du RH, ligne par ligne.
-     * - CREATION : le RH peut définir une nouvelle fourchette dans la grille (ou reprendre la grille en vigueur).
-     * - REMPLACEMENT : on référence obligatoirement la grille déjà existante.
-     */
-    private void estimer(DemandeRecrutement demande, List<EstimationRequest> estimations, boolean obligatoire) {
-        Map<Long, EstimationRequest> parLigne = new HashMap<>();
-        if (estimations != null) {
-            for (EstimationRequest e : estimations) {
-                if (e.idLigne() != null) parLigne.put(e.idLigne(), e);
-            }
-        }
-        for (LigneDemande ligne : demande.getLignes()) {
-            String nomNiveau = ligne.getNiveau().getLibelle();
-            EstimationRequest est = parLigne.get(ligne.getIdLigne());
-            if (est == null || est.coutEstimeParPersonne() == null) {
-                if (obligatoire) {
-                    throw new BusinessException("Renseignez le coût estimé par personne pour le niveau « " + nomNiveau + " ».");
-                }
-                continue;
-            }
-            if (est.coutEstimeParPersonne().signum() < 0) {
-                throw new BusinessException("Le coût estimé ne peut pas être négatif (niveau « " + nomNiveau + " »).");
-            }
-
-            GrilleSalariale grille;
-            boolean nouvelleFourchette = est.salaireMin() != null || est.salaireMax() != null;
-            if (nouvelleFourchette) {
-                if (demande.getTypeBesoin() != TypeBesoin.CREATION) {
-                    throw new BusinessException("Pour un remplacement, on utilise la grille salariale existante : aucune nouvelle fourchette possible.");
-                }
-                if (est.salaireMin() == null || est.salaireMax() == null) {
-                    throw new BusinessException("Renseignez le salaire minimum ET maximum (niveau « " + nomNiveau + " »).");
-                }
-                grille = grilleService.definir(demande.getPoste(), ligne.getNiveau(), est.salaireMin(), est.salaireMax());
-            } else {
-                grille = grilleService.applicable(demande.getPoste(), ligne.getNiveau(), LocalDate.now())
-                        .orElseThrow(() -> new BusinessException(
-                                demande.getTypeBesoin() == TypeBesoin.CREATION
-                                        ? "Aucune grille pour « " + nomNiveau + " » : définissez une fourchette salariale."
-                                        : "Aucune grille salariale existante pour le niveau « " + nomNiveau + " »."));
-            }
-
-            BigDecimal cout = est.coutEstimeParPersonne();
-            if (cout.compareTo(grille.getSalaireMin()) < 0 || cout.compareTo(grille.getSalaireMax()) > 0) {
-                throw new BusinessException("Le coût estimé du niveau « " + nomNiveau + " » doit être compris entre "
-                        + grille.getSalaireMin().toPlainString() + " et " + grille.getSalaireMax().toPlainString() + " Ar.");
-            }
-            ligne.setGrille(grille);
-            ligne.setCoutEstimeParPersonne(cout);
-        }
     }
 
     // ------------------------------------------------------------------ Utilitaires

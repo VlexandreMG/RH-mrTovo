@@ -29,9 +29,9 @@ Pour réinitialiser les données de l'application, arrêter le backend puis supp
 - **Grille salariale** : par poste **et** niveau, avec période de validité.
   - Création : le RH définit une nouvelle fourchette (l'ancienne est clôturée, l'historique est gardé) ou reprend celle en vigueur.
   - Remplacement : la grille existante est utilisée, aucune nouvelle fourchette.
-- **Budget** : le manager saisit un budget total demandé ; le RH saisit le coût estimé par personne (dans la fourchette de la grille) ; le coût total est calculé et comparé au budget.
-- **Workflow** : RH → Finance → Direction. RH et Finance donnent un **avis** (même défavorable, la demande continue) ; la Direction a le **dernier mot** sur la demande entière. Seul le RH ouvre le recrutement, uniquement si la demande est autorisée.
-- **Historique** : chaque avis est une ligne distincte dans `validation`, jamais écrasée.
+- **Budget** : le manager saisit le budget total demandé. La Direction décide sur cette base.
+- **Workflow** : le RH et la Finance consultent la demande en **lecture seule**. Seule la **Direction** peut l'accepter ou la refuser, et sa décision porte sur la demande entière. Seul le RH ouvre ensuite le recrutement, uniquement si la demande est autorisée.
+- **Historique** : la décision de la Direction est une ligne dans `validation`, jamais écrasée.
 
 ## Bloc 2 : suivi des candidatures
 

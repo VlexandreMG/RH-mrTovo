@@ -1,10 +1,10 @@
 package com.mrtovo.backend.service;
 
 import com.mrtovo.backend.dto.ApiDtos.DemandeRecrutementRequest;
-import com.mrtovo.backend.dto.ApiDtos.EstimationRequest;
 import com.mrtovo.backend.dto.ApiDtos.LigneRequest;
 import com.mrtovo.backend.dto.ApiDtos.ValidationRequest;
 import com.mrtovo.backend.entity.*;
+import com.mrtovo.backend.exception.BusinessException;
 import com.mrtovo.backend.repository.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,47 +31,42 @@ class Bloc1WorkflowIntegrationTest {
     private PosteRepository posteRepository;
     @Autowired
     private NiveauPosteRepository niveauRepository;
-    @Autowired
-    private GrilleService grilleService;
 
     @Test
-    void managerThenRhFinanceAndDirectionApproveBeforeRhPublishesOffer() {
+    void directionAloneAcceptsRecruitmentRequestBeforeRhPublishesOffer() {
         Utilisateur manager = utilisateur(RoleUtilisateur.MANAGER);
         Utilisateur rh = utilisateur(RoleUtilisateur.RH);
         Utilisateur finance = utilisateur(RoleUtilisateur.FINANCE);
         Utilisateur direction = utilisateur(RoleUtilisateur.DIRECTION);
         Poste poste = posteRepository.findAll().stream().findFirst().orElseThrow();
         NiveauPoste niveau = niveauRepository.findAllByOrderByRangAsc().stream().findFirst().orElseThrow();
-        GrilleSalariale grille = grilleService.applicable(poste, niveau, LocalDate.now()).orElseThrow();
-        BigDecimal estimation = grille.getSalaireMin();
 
         var demande = demandeService.creer(new DemandeRecrutementRequest(
                 poste.getIdPoste(), "CREATION", "Validation du workflow de recrutement", null,
-                estimation.multiply(BigDecimal.valueOf(4)), LocalDate.now().plusDays(7),
+                BigDecimal.valueOf(4_000_000), LocalDate.now().plusDays(7),
                 List.of(new LigneRequest(niveau.getIdNiveau(), 1))), manager.getEmail());
 
-        assertEquals("EN_ATTENTE_RH", demande.statut());
+        assertEquals("EN_ATTENTE_DIRECTION", demande.statut());
         assertNotNull(demande.idOffre());
         assertEquals("En attente", demande.statutOffre());
 
-        var ligne = demande.lignes().getFirst();
-        demande = demandeService.valider(demande.idDemande(),
-                new ValidationRequest("FAVORABLE", "Budget RH estimé.", List.of(
-                        new EstimationRequest(ligne.idLigne(), estimation, null, null))), rh.getEmail());
-        assertEquals("EN_ATTENTE_FINANCE", demande.statut());
-        assertEquals("FAVORABLE", demande.validations().getFirst().decision());
+        Long idDemande = demande.idDemande();
+        ValidationRequest favorable = new ValidationRequest("FAVORABLE", "Demande conforme.", null);
+        assertThrows(BusinessException.class,
+                () -> demandeService.valider(idDemande, favorable, rh.getEmail()));
+        assertThrows(BusinessException.class,
+                () -> demandeService.valider(idDemande, favorable, finance.getEmail()));
+        assertEquals("EN_ATTENTE_DIRECTION", demandeService.detail(idDemande, direction.getEmail()).statut());
 
-        demande = demandeService.valider(demande.idDemande(),
-                new ValidationRequest("FAVORABLE", "Budget disponible.", null), finance.getEmail());
-        assertEquals("EN_ATTENTE_DIRECTION", demande.statut());
-
-        demande = demandeService.valider(demande.idDemande(),
-                new ValidationRequest("FAVORABLE", "Autorisation de recrutement.", null), direction.getEmail());
+        demande = demandeService.valider(idDemande, favorable, direction.getEmail());
         assertEquals("AUTORISEE", demande.statut());
-        assertEquals(3, demande.validations().size());
+        assertEquals(1, demande.validations().size());
+        assertEquals("DIRECTION", demande.validations().getFirst().etape());
+        assertThrows(BusinessException.class,
+                () -> demandeService.valider(idDemande, favorable, direction.getEmail()));
 
         Long offrePublieeId = demande.idOffre();
-        demande = demandeService.ouvrir(demande.idDemande(), rh.getEmail());
+        demande = demandeService.ouvrir(idDemande, rh.getEmail());
         assertEquals("RECRUTEMENT_OUVERT", demande.statut());
         assertEquals("Ouverte", demande.statutOffre());
         assertTrue(recrutementService.listerOffresPubliques().stream()

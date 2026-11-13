@@ -67,10 +67,10 @@ export const TYPES_BESOIN = {
   REMPLACEMENT: 'Remplacement'
 }
 
-/** Statut sur lequel chaque rôle doit agir. */
+/** Statuts sur lesquels chaque rôle doit agir. RH et Finance consultent sans valider. */
 export const A_TRAITER = {
-  RH: ['EN_ATTENTE_RH', 'AUTORISEE'],
-  FINANCE: ['EN_ATTENTE_FINANCE'],
-  DIRECTION: ['EN_ATTENTE_DIRECTION'],
+  RH: ['AUTORISEE'],
+  FINANCE: [],
+  DIRECTION: ['EN_ATTENTE_RH', 'EN_ATTENTE_FINANCE', 'EN_ATTENTE_DIRECTION'],
   MANAGER: []
 }

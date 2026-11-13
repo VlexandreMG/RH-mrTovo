@@ -16,11 +16,11 @@ const comptes = [
   { role: 'Manager Informatique', email: 'manager.informatique@rh.com', mdp: 'manager123', icon: 'briefcase' },
   { role: 'Manager RH', email: 'manager.rh@rh.com', mdp: 'manager123', icon: 'briefcase' },
   { role: 'Manager Finance', email: 'manager.finance@rh.com', mdp: 'manager123', icon: 'briefcase' },
-  { role: 'Manager Direction', email: 'manager.direction@rh.com', mdp: 'manager123', icon: 'briefcase' },
+  { role: 'Manager Direction (départ.)', email: 'manager.direction@rh.com', mdp: 'manager123', icon: 'briefcase' },
   { role: 'Manager Commercial', email: 'manager.commercial@rh.com', mdp: 'manager123', icon: 'briefcase' },
   { role: 'RH', email: 'rh@rh.com', mdp: 'rh123', icon: 'users' },
   { role: 'Finance', email: 'finance@rh.com', mdp: 'finance123', icon: 'wallet' },
-  { role: 'Direction', email: 'direction@rh.com', mdp: 'direction123', icon: 'shield' }
+  { role: 'Direction (DG)', email: 'direction@rh.com', mdp: 'direction123', icon: 'shield' }
 ]
 
 function remplir(c) {
@@ -49,7 +49,7 @@ async function connexion() {
       <div class="hero-inner">
         <div class="logo"><AppIcon name="users" :size="26" /></div>
         <h1>Exprimez, validez et ouvrez vos recrutements.</h1>
-        <p>Un seul circuit pour tous : le manager exprime le besoin, le RH chiffre, la Finance donne son avis et la Direction tranche.</p>
+        <p>Un seul circuit pour tous : le manager exprime le besoin, le RH et la Finance consultent, la Direction tranche.</p>
         <ul>
           <li><AppIcon name="check" :size="16" /> Effectifs par niveau (junior, confirmé, senior)</li>
           <li><AppIcon name="check" :size="16" /> Coûts estimés à partir de la grille salariale</li>

@@ -20,13 +20,10 @@ const d = ref(null)
 const erreur = ref('')
 const commentaire = ref('')
 const envoi = ref(false)
-const estimations = ref([])
 
 async function charger() {
   try {
-    await store.chargerReferentiels()
     d.value = await store.detail(props.id)
-    preparerEstimations()
   } catch (e) {
     erreur.value = e.message
   }
@@ -34,36 +31,14 @@ async function charger() {
 onMounted(charger)
 
 // ----- Actions disponibles selon rôle et statut
-const etapeAttendue = computed(() => ({
-  EN_ATTENTE_RH: 'RH', EN_ATTENTE_FINANCE: 'FINANCE', EN_ATTENTE_DIRECTION: 'DIRECTION'
-}[d.value?.statut]))
-const peutDonnerAvis = computed(() => etapeAttendue.value && etapeAttendue.value === auth.role)
+const enAttente = computed(() =>
+  ['EN_ATTENTE_RH', 'EN_ATTENTE_FINANCE', 'EN_ATTENTE_DIRECTION'].includes(d.value?.statut)
+)
+const peutDonnerAvis = computed(() => enAttente.value && auth.role === 'DIRECTION')
+const consultationSeule = computed(() =>
+  enAttente.value && ['RH', 'FINANCE'].includes(auth.role)
+)
 const peutOuvrir = computed(() => d.value?.statut === 'AUTORISEE' && auth.role === 'RH')
-const estRH = computed(() => auth.role === 'RH' && d.value?.statut === 'EN_ATTENTE_RH')
-
-// ----- Chiffrage RH
-function preparerEstimations() {
-  if (!d.value) return
-  estimations.value = d.value.lignes.map((l) => {
-    const g = store.grilleApplicable(d.value.idPoste, l.idNiveau)
-    return {
-      idLigne: l.idLigne,
-      niveau: l.niveau,
-      effectif: l.effectif,
-      grille: g || null,
-      nouvelle: !g && d.value.typeBesoin === 'CREATION',
-      min: g ? g.salaireMin : null,
-      max: g ? g.salaireMax : null,
-      cout: g ? Math.round((g.salaireMin + g.salaireMax) / 2) : null
-    }
-  })
-}
-const bloqueRemplacement = computed(() =>
-  estRH.value && d.value.typeBesoin === 'REMPLACEMENT' && estimations.value.some((e) => !e.grille)
-)
-const totalEstimation = computed(() =>
-  estimations.value.reduce((s, e) => s + (Number(e.cout) || 0) * e.effectif, 0)
-)
 
 // ----- Synthèse budget
 const ecart = computed(() =>
@@ -74,29 +49,15 @@ const ratio = computed(() => {
   return Math.min(100, Math.round((d.value.coutEstimeTotal / d.value.budgetDemandeTotal) * 100))
 })
 
-const libellesAction = computed(() => ({
-  RH: { oui: 'Avis favorable', non: 'Avis défavorable' },
-  FINANCE: { oui: 'Avis favorable', non: 'Avis défavorable' },
-  DIRECTION: { oui: 'Autoriser la demande', non: 'Refuser la demande' }
-}[auth.role] || {}))
+const libellesAction = { oui: 'Accepter la demande', non: 'Refuser la demande' }
 
 async function donnerAvis(decision) {
   if (decision === 'DEFAVORABLE' && !commentaire.value.trim()) {
-    return toast.error('Un commentaire est obligatoire pour un avis défavorable.')
+    return toast.error('Un commentaire est obligatoire pour une décision défavorable.')
   }
   envoi.value = true
   try {
-    const payload = { decision, commentaire: commentaire.value }
-    if (estRH.value && decision === 'FAVORABLE') {
-      payload.estimations = estimations.value.map((e) => ({
-        idLigne: e.idLigne,
-        coutEstimeParPersonne: e.cout,
-        salaireMin: e.nouvelle ? e.min : null,
-        salaireMax: e.nouvelle ? e.max : null
-      }))
-    }
-    d.value = await store.valider(d.value.idDemande, payload)
-    await store.chargerReferentiels(true)
+    d.value = await store.valider(d.value.idDemande, { decision, commentaire: commentaire.value })
     commentaire.value = ''
     toast.success('Votre décision a été enregistrée.')
   } catch (e) {
@@ -180,62 +141,39 @@ const etapeLabel = { RH: 'Avis RH', FINANCE: 'Avis Finance', DIRECTION: 'Décisi
           </div>
           <div class="budget card-pad">
             <div class="bl"><span>Budget demandé par le manager</span><b>{{ ar(d.budgetDemandeTotal) }}</b></div>
-            <div class="bl"><span>Coût estimé par le RH</span><b>{{ ar(d.coutEstimeTotal) }}</b></div>
+            <div class="bl"><span>Coût estimé</span><b>{{ d.coutEstimeTotal == null ? '—' : ar(d.coutEstimeTotal) }}</b></div>
             <template v-if="ecart !== null">
               <div class="bar"><i :style="{ width: ratio + '%' }" :class="{ over: ecart < 0 }" /></div>
               <p class="bilan" :class="ecart < 0 ? 'neg' : 'pos'">
                 {{ ecart < 0 ? `Dépassement de ${ar(-ecart)} par rapport au budget demandé` : `Marge de ${ar(ecart)} sous le budget demandé` }}
               </p>
             </template>
-            <p v-else class="hint">Le coût sera estimé par le RH lors de son avis.</p>
+            <p v-else class="hint">La Direction décide sur la base du budget demandé.</p>
           </div>
         </section>
       </div>
 
       <div class="col">
-        <!-- Panneau d'action -->
+        <!-- Panneau d'action : seule la Direction décide -->
         <section v-if="peutDonnerAvis" class="card action">
-          <div class="card-head"><h2><AppIcon name="shield" /> {{ etapeLabel[auth.role] }}</h2></div>
+          <div class="card-head"><h2><AppIcon name="shield" /> Décision Direction</h2></div>
           <div class="card-pad stack">
-            <p v-if="auth.role === 'DIRECTION'" class="note">Vous avez le dernier mot : votre décision porte sur la demande entière, même si le RH ou la Finance ont émis un avis défavorable.</p>
-            <p v-if="auth.role === 'FINANCE'" class="note">Comparez le budget demandé ({{ ar(d.budgetDemandeTotal) }}) au coût estimé par le RH ({{ ar(d.coutEstimeTotal) }}).</p>
-
-            <template v-if="estRH">
-              <p class="note">{{ d.typeBesoin === 'CREATION'
-                ? 'Création : définissez la fourchette salariale de chaque niveau (ou reprenez la grille en vigueur), puis fixez le coût estimé.'
-                : 'Remplacement : la grille salariale existante est utilisée. Fixez le coût estimé dans sa fourchette.' }}</p>
-              <div v-for="e in estimations" :key="e.idLigne" class="est">
-                <div class="est-top"><strong>{{ e.niveau }}</strong><span class="muted">× {{ e.effectif }}</span></div>
-
-                <p v-if="!e.grille && d.typeBesoin === 'REMPLACEMENT'" class="bad">Aucune grille existante pour ce niveau : un remplacement ne peut pas être chiffré.</p>
-                <template v-else>
-                  <label v-if="e.grille && d.typeBesoin === 'CREATION'" class="check">
-                    <input v-model="e.nouvelle" type="checkbox" @change="e.nouvelle && (e.min = e.grille.salaireMin, e.max = e.grille.salaireMax)" />
-                    Définir une nouvelle fourchette
-                  </label>
-                  <p v-if="e.grille && !e.nouvelle" class="hint">Grille en vigueur : {{ ar(e.grille.salaireMin) }} – {{ ar(e.grille.salaireMax) }}</p>
-
-                  <div v-if="e.nouvelle" class="grid-2">
-                    <div class="field"><label>Salaire min. (Ar)</label><input v-model.number="e.min" class="input" type="number" min="0" /></div>
-                    <div class="field"><label>Salaire max. (Ar)</label><input v-model.number="e.max" class="input" type="number" min="0" /></div>
-                  </div>
-                  <div class="field">
-                    <label>Coût estimé par personne (Ar / mois)</label>
-                    <input v-model.number="e.cout" class="input" type="number" min="0" />
-                  </div>
-                </template>
-              </div>
-              <div class="bl total"><span>Coût total estimé</span><b>{{ ar(totalEstimation) }}</b></div>
-            </template>
-
+            <p class="note">Vous avez le dernier mot : votre décision porte sur la demande entière. Le RH et la Finance sont en lecture seule.</p>
             <div class="field">
-              <label for="com">Commentaire <span class="muted">(obligatoire si défavorable)</span></label>
+              <label for="com">Commentaire <span class="muted">(obligatoire si refus)</span></label>
               <textarea id="com" v-model="commentaire" class="textarea" placeholder="Justifiez votre décision…" />
             </div>
             <div class="btns">
-              <button class="btn btn-success" :disabled="envoi || bloqueRemplacement" @click="donnerAvis('FAVORABLE')"><AppIcon name="check" :size="16" /> {{ libellesAction.oui }}</button>
+              <button class="btn btn-success" :disabled="envoi" @click="donnerAvis('FAVORABLE')"><AppIcon name="check" :size="16" /> {{ libellesAction.oui }}</button>
               <button class="btn btn-danger" :disabled="envoi" @click="donnerAvis('DEFAVORABLE')"><AppIcon name="x" :size="16" /> {{ libellesAction.non }}</button>
             </div>
+          </div>
+        </section>
+
+        <section v-else-if="consultationSeule" class="card">
+          <div class="card-head"><h2><AppIcon name="shield" /> Consultation</h2></div>
+          <div class="card-pad">
+            <p class="note">Lecture seule : la demande est en attente de la décision de la Direction.</p>
           </div>
         </section>
 

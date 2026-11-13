@@ -41,9 +41,9 @@ const cartes = computed(() => [
 
 const consigne = {
   MANAGER: 'Exprimez un nouveau besoin ou suivez l’avancement de vos demandes.',
-  RH: 'Chiffrez les nouvelles demandes et ouvrez les recrutements autorisés.',
-  FINANCE: 'Donnez votre avis budgétaire sur les demandes chiffrées par le RH.',
-  DIRECTION: 'Tranchez les demandes qui ont reçu l’avis du RH et de la Finance.'
+  RH: 'Consultez les demandes en lecture seule et ouvrez les recrutements autorisés.',
+  FINANCE: 'Consultez les demandes de recrutement en lecture seule.',
+  DIRECTION: 'Acceptez ou refusez les demandes de recrutement.'
 }
 const prenom = computed(() => auth.user?.nom || '')
 </script>
