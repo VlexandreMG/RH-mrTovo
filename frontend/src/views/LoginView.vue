@@ -76,6 +76,7 @@ async function connexion() {
         <p v-if="erreur" class="erreur"><AppIcon name="alert" :size="16" /> {{ erreur }}</p>
         <button class="btn btn-block" :disabled="chargement">{{ chargement ? 'Connexion…' : 'Se connecter' }}</button>
         <RouterLink class="candidate-link" to="/candidats/inscription">Créer un compte candidat</RouterLink>
+        <RouterLink class="candidate-link" to="/salaries/activation">Salarié : activer mon compte</RouterLink>
 
         <div class="demo">
           <span class="label">Comptes de démonstration</span>

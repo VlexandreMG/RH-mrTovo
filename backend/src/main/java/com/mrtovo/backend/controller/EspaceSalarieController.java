@@ -1,5 +1,8 @@
 package com.mrtovo.backend.controller;
 
+import com.mrtovo.backend.service.TempsTravailService;
+import com.mrtovo.backend.service.PointageService;
+import com.mrtovo.backend.dto.SemaineTempsDto;
 import com.mrtovo.backend.dto.ChangementMotDePasseRequest;
 import com.mrtovo.backend.dto.DemandeCongeDto;
 import com.mrtovo.backend.dto.SalarieProfilDto;
@@ -36,13 +39,39 @@ public class EspaceSalarieController {
     private final EspaceSalarieService espaceService;
     private final CongeService congeService;
     private final CompteSalarieService compteService;
+    private final PointageService pointageService;
+    private final TempsTravailService tempsService;
 
     public EspaceSalarieController(EspaceSalarieService espaceService,
                                    CongeService congeService,
-                                   CompteSalarieService compteService) {
+                                   CompteSalarieService compteService,
+                                   PointageService pointageService,
+                                   TempsTravailService tempsService) {
         this.espaceService = espaceService;
         this.congeService = congeService;
         this.compteService = compteService;
+        this.pointageService = pointageService;
+        this.tempsService = tempsService;
+    }
+
+    // Bloc 6 : le salarie pointe lui-meme. Routes reservees au role EMPLOYE dans SecurityConfig.
+
+    /** Sa semaine, en lecture seule : la meme que celle que voit le RH. */
+    @GetMapping("/pointage")
+    public SemaineTempsDto maSemaine(@RequestParam(required = false)
+                                     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                     Authentication auth) {
+        return tempsService.semaine(espaceService.employeId(auth.getName()), date != null ? date : LocalDate.now());
+    }
+
+    @PostMapping("/pointage/arrivee")
+    public SemaineTempsDto pointerArrivee(Authentication auth) {
+        return pointageService.pointerArrivee(espaceService.employeId(auth.getName()), auth.getName());
+    }
+
+    @PostMapping("/pointage/depart")
+    public SemaineTempsDto pointerDepart(Authentication auth) {
+        return pointageService.pointerDepart(espaceService.employeId(auth.getName()), auth.getName());
     }
 
     @GetMapping("/moi")

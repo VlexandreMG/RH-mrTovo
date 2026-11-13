@@ -1,5 +1,6 @@
 package com.mrtovo.backend.dto;
 
+import com.mrtovo.backend.entity.SourcePointage;
 import com.mrtovo.backend.entity.StatutAbsence;
 
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ public record JourTempsDto(
         LocalTime heureEntree,
         LocalTime heureSortie,
         String commentaire,
+        SourcePointage pointageSource,
         boolean absent,
         String congeLibelle,
         Boolean congeRemunere,

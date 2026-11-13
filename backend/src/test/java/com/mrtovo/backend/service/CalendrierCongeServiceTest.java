@@ -277,7 +277,7 @@ class CalendrierCongeServiceTest {
             boolean ouvre = date.getDayOfWeek().getValue() < DayOfWeek.SATURDAY.getValue();
             boolean absent = absences.contains(date);
             jours.add(new JourTempsDto(date, ouvre ? LocalTime.of(8, 0) : null, ouvre ? LocalTime.of(17, 0) : null,
-                    null, null, null, null, absent, null, null, null, absent ? statutAbsence : null,
+                    null, null, null, null, null, absent, null, null, null, absent ? statutAbsence : null,
                     0, 0, 0, 0, 0, List.<AnomaliePointageDto>of()));
         }
         return jours;

@@ -8,6 +8,7 @@ import com.mrtovo.backend.entity.ActionAudit;
 import com.mrtovo.backend.entity.DecisionHeuresSup;
 import com.mrtovo.backend.entity.EmployeEmbauche;
 import com.mrtovo.backend.entity.Pointage;
+import com.mrtovo.backend.entity.SourcePointage;
 import com.mrtovo.backend.entity.StatutEmploye;
 import com.mrtovo.backend.entity.StatutHeuresSup;
 import com.mrtovo.backend.exception.ApiException;
@@ -22,6 +23,7 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +67,13 @@ public class PointageService {
         this.horloge = horloge;
     }
 
+    /** Ajout par le RH d'un pointage oublie : le salarie pointe d'ordinaire lui-meme, d'ou le motif obligatoire. */
     public SemaineTempsDto saisir(PointageRequest requete, String auteur) {
+        String motif = nettoyer(requete.motif());
+        if (motif == null) {
+            throw ApiException.badRequest("MOTIF_OBLIGATOIRE",
+                    "Le salarié pointe lui-même : indiquez pourquoi vous ajoutez ce pointage.");
+        }
         EmployeEmbauche employe = employeRepository.findById(requete.employeId())
                 .orElseThrow(() -> ApiException.notFound("Salarié introuvable : " + requete.employeId()));
         verifierDate(employe, requete.date());
@@ -82,9 +90,10 @@ public class PointageService {
         pointage.setHeureSortie(requete.heureSortie());
         pointage.setCommentaire(nettoyer(requete.commentaire()));
         pointage.setSaisiPar(auteur);
+        pointage.setSource(SourcePointage.RH);
         pointageRepository.save(pointage);
 
-        trace.tracer(employe, ActionAudit.SAISIE_POINTAGE, auteur, decrire(pointage));
+        trace.tracer(employe, ActionAudit.SAISIE_POINTAGE, auteur, decrire(pointage) + " — motif : " + motif);
         rouvrirSemaine(employe, requete.date(), auteur);
         return tempsService.semaine(employe.getId(), requete.date());
     }
@@ -107,6 +116,7 @@ public class PointageService {
         pointage.setCommentaire(nettoyer(requete.commentaire()));
         pointage.setModifiePar(auteur);
         pointage.setDateModification(LocalDateTime.now(horloge));
+        pointage.setSource(SourcePointage.CORRIGE_RH);
         pointageRepository.save(pointage);
 
         trace.tracer(employe, ActionAudit.CORRECTION_POINTAGE, auteur,
@@ -114,6 +124,54 @@ public class PointageService {
                         + String.join("\n", changements));
         rouvrirSemaine(employe, pointage.getDatePointage(), auteur);
         return tempsService.semaine(employe.getId(), pointage.getDatePointage());
+    }
+
+    // =====================================================================
+    // Pointage par le salarie lui-meme
+    // =====================================================================
+
+    /** L'heure est celle du serveur, a la minute : le salarie ne la choisit pas. */
+    public SemaineTempsDto pointerArrivee(Long employeId, String auteur) {
+        EmployeEmbauche employe = employeRepository.findById(employeId)
+                .orElseThrow(() -> ApiException.notFound("Salarié introuvable : " + employeId));
+        LocalDateTime maintenant = LocalDateTime.now(horloge);
+        LocalDate aujourdhui = maintenant.toLocalDate();
+        verifierDate(employe, aujourdhui);
+        if (pointageRepository.findByEmployeIdAndDatePointage(employeId, aujourdhui).isPresent()) {
+            throw ApiException.conflit("ARRIVEE_DEJA_POINTEE", "Votre arrivée est déjà pointée aujourd'hui.");
+        }
+
+        Pointage pointage = new Pointage();
+        pointage.setEmploye(employe);
+        pointage.setDatePointage(aujourdhui);
+        pointage.setHeureEntree(maintenant.toLocalTime().truncatedTo(ChronoUnit.MINUTES));
+        pointage.setSaisiPar(auteur);
+        pointage.setSource(SourcePointage.SALARIE);
+        pointageRepository.save(pointage);
+
+        trace.tracer(employe, ActionAudit.POINTAGE_ARRIVEE, auteur, decrire(pointage));
+        return tempsService.semaine(employeId, aujourdhui);
+    }
+
+    public SemaineTempsDto pointerDepart(Long employeId, String auteur) {
+        LocalDateTime maintenant = LocalDateTime.now(horloge);
+        LocalDate aujourdhui = maintenant.toLocalDate();
+        Pointage pointage = pointageRepository.findByEmployeIdAndDatePointage(employeId, aujourdhui)
+                .orElseThrow(() -> ApiException.conflit("ARRIVEE_NON_POINTEE",
+                        "Pointez d'abord votre arrivée."));
+        if (pointage.getHeureSortie() != null) {
+            throw ApiException.conflit("DEPART_DEJA_POINTE", "Votre départ est déjà pointé aujourd'hui.");
+        }
+        LocalTime sortie = maintenant.toLocalTime().truncatedTo(ChronoUnit.MINUTES);
+        if (!sortie.isAfter(pointage.getHeureEntree())) {
+            throw ApiException.conflit("DEPART_TROP_TOT",
+                    "Le départ doit suivre l'arrivée (" + pointage.getHeureEntree() + ").");
+        }
+        pointage.setHeureSortie(sortie);
+        pointageRepository.save(pointage);
+
+        trace.tracer(pointage.getEmploye(), ActionAudit.POINTAGE_DEPART, auteur, decrire(pointage));
+        return tempsService.semaine(employeId, aujourdhui);
     }
 
     public SemaineTempsDto supprimer(Long pointageId, String motif, String auteur) {

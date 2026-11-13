@@ -13,6 +13,7 @@ const menu = computed(() => {
   if (auth.role === 'EMPLOYE') {
     return [
       { to: '/salarie', label: 'Mon espace', icon: 'users', exact: true },
+      { to: '/salarie/pointage', label: 'Mon pointage', icon: 'clock' },
       { to: '/salarie/demande-conge', label: 'Demander un congé', icon: 'file' }
     ]
   }

@@ -51,7 +51,8 @@ Documentation complète : [`docs/BLOC5-DOSSIER-SALARIE.md`](./docs/BLOC5-DOSSIER
 
 ## Bloc 6 : temps de travail et pointage
 
-Menu **Temps de travail** (rôle RH uniquement) : régimes et planning, saisie des pointages, calcul du temps travaillé, détection des anomalies, compensation hebdomadaire des retards par les heures supplémentaires validées, et variables de paie.
+**Pointage par le salarié** : le salarié active lui-même son compte (lien « Salarié : activer mon compte » sur la page de connexion, avec son matricule et l'email de son dossier), puis pointe son arrivée et son départ depuis **Mon pointage**. L'heure enregistrée est celle du serveur, une seule arrivée et un seul départ par jour.
+Menu **Temps de travail** (rôle RH uniquement) : régimes et planning, contrôle des pointages (source « Salarié », « Ajouté par le RH » ou « Corrigé par le RH » ; tout ajout ou correction exige un motif), calcul du temps travaillé, détection des anomalies, compensation hebdomadaire des retards par les heures supplémentaires validées, et variables de paie.
 Documentation complète : [`docs/BLOC6-TEMPS-DE-TRAVAIL.md`](./docs/BLOC6-TEMPS-DE-TRAVAIL.md). Plan : [`docs/BLOC6-PLAN.png`](./docs/BLOC6-PLAN.png).
 
 ## Bloc 7 : congés et absences

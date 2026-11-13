@@ -19,12 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CompteSalarieServiceTest {
 
     private UtilisateurRepository utilisateurRepository;
+    private EmployeEmbaucheRepository employeRepository;
     private CompteSalarieService service;
     private EmployeEmbauche employe;
     private final BCryptPasswordEncoder encodeur = new BCryptPasswordEncoder(4);
@@ -32,7 +34,7 @@ class CompteSalarieServiceTest {
     @BeforeEach
     void preparer() {
         utilisateurRepository = mock(UtilisateurRepository.class);
-        EmployeEmbaucheRepository employeRepository = mock(EmployeEmbaucheRepository.class);
+        employeRepository = mock(EmployeEmbaucheRepository.class);
         service = new CompteSalarieService(utilisateurRepository, employeRepository, encodeur,
                 mock(TraceTempsService.class));
 
@@ -44,7 +46,10 @@ class CompteSalarieServiceTest {
         employe.setPrenom("Aina");
         employe.setEmail("Aina@mail.mg");
         employe.setCandidat(candidat);
+        employe.setMatricule("EMP-TEST-0001");
+        employe.setStatut(com.mrtovo.backend.entity.StatutEmploye.ACTIF);
         when(employeRepository.findById(1L)).thenReturn(Optional.of(employe));
+        when(employeRepository.findByMatricule("EMP-TEST-0001")).thenReturn(Optional.of(employe));
         when(utilisateurRepository.findByEmployeId(1L)).thenReturn(Optional.empty());
         when(utilisateurRepository.findByEmailIgnoreCase("aina@mail.mg")).thenReturn(Optional.empty());
     }
@@ -112,5 +117,54 @@ class CompteSalarieServiceTest {
         service.changerMotDePasse("aina@mail.mg",
                 new com.mrtovo.backend.dto.ChangementMotDePasseRequest("ancienmdp", "nouveaumdp"));
         assertTrue(encodeur.matches("nouveaumdp", compte.getMotDePasse()));
+    }
+
+    // ===================================================== Activation par le salarie lui-meme
+
+    @Test
+    void leSalarieActiveSonCompteAvecSonMatriculeEtSonEmail() {
+        service.activer(new com.mrtovo.backend.dto.ActivationCompteSalarieRequest(" emp-test-0001 ", "AINA@mail.mg",
+                "motdepasse"));
+
+        org.mockito.ArgumentCaptor<Utilisateur> compte = org.mockito.ArgumentCaptor.forClass(Utilisateur.class);
+        verify(utilisateurRepository).save(compte.capture());
+        assertEquals(RoleUtilisateur.EMPLOYE, compte.getValue().getRole());
+        assertEquals(employe, compte.getValue().getEmploye());
+        assertTrue(encodeur.matches("motdepasse", compte.getValue().getMotDePasse()));
+    }
+
+    @Test
+    void unMauvaisEmailOuUnMauvaisMatriculeDonneLaMemeErreur() {
+        ApiException mauvaisEmail = org.junit.jupiter.api.Assertions.assertThrows(ApiException.class,
+                () -> service.activer(new com.mrtovo.backend.dto.ActivationCompteSalarieRequest("EMP-TEST-0001",
+                        "autre@mail.mg", "motdepasse")));
+        ApiException mauvaisMatricule = org.junit.jupiter.api.Assertions.assertThrows(ApiException.class,
+                () -> service.activer(new com.mrtovo.backend.dto.ActivationCompteSalarieRequest("EMP-9999",
+                        "aina@mail.mg", "motdepasse")));
+
+        assertEquals("IDENTITE_INVALIDE", mauvaisEmail.getCode());
+        assertEquals(mauvaisEmail.getMessage(), mauvaisMatricule.getMessage(),
+                "le message ne doit pas dire lequel des deux est faux");
+        verify(utilisateurRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void onNActivePasDeuxFoisLeMemeCompte() {
+        when(utilisateurRepository.findByEmployeId(1L)).thenReturn(Optional.of(new Utilisateur()));
+
+        ApiException erreur = org.junit.jupiter.api.Assertions.assertThrows(ApiException.class,
+                () -> service.activer(new com.mrtovo.backend.dto.ActivationCompteSalarieRequest("EMP-TEST-0001",
+                        "aina@mail.mg", "motdepasse")));
+        assertEquals("COMPTE_EXISTANT", erreur.getCode());
+    }
+
+    @Test
+    void unSalarieSortiNePeutPasActiverDeCompte() {
+        employe.setStatut(com.mrtovo.backend.entity.StatutEmploye.SORTI);
+
+        ApiException erreur = org.junit.jupiter.api.Assertions.assertThrows(ApiException.class,
+                () -> service.activer(new com.mrtovo.backend.dto.ActivationCompteSalarieRequest("EMP-TEST-0001",
+                        "aina@mail.mg", "motdepasse")));
+        assertEquals("SALARIE_SORTI", erreur.getCode());
     }
 }

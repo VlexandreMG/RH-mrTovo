@@ -9,6 +9,8 @@ public enum ActionAudit {
     TELECHARGEMENT_DOCUMENT("Téléchargement d'un document"),
     AFFECTATION_REGIME("Affectation d'un régime de travail"),
     SAISIE_POINTAGE("Saisie d'un pointage"),
+    POINTAGE_ARRIVEE("Arrivée pointée par le salarié"),
+    POINTAGE_DEPART("Départ pointé par le salarié"),
     CORRECTION_POINTAGE("Correction d'un pointage"),
     SUPPRESSION_POINTAGE("Suppression d'un pointage"),
     DECISION_HEURES_SUP("Décision sur les heures supplémentaires"),

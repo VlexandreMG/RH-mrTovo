@@ -1,9 +1,11 @@
 package com.mrtovo.backend.service;
 
+import com.mrtovo.backend.dto.ActivationCompteSalarieRequest;
 import com.mrtovo.backend.dto.ChangementMotDePasseRequest;
 import com.mrtovo.backend.entity.ActionAudit;
 import com.mrtovo.backend.entity.EmployeEmbauche;
 import com.mrtovo.backend.entity.RoleUtilisateur;
+import com.mrtovo.backend.entity.StatutEmploye;
 import com.mrtovo.backend.entity.Utilisateur;
 import com.mrtovo.backend.exception.ApiException;
 import com.mrtovo.backend.repository.EmployeEmbaucheRepository;
@@ -48,6 +50,30 @@ public class CompteSalarieService {
         if (utilisateurRepository.findByEmployeId(employeId).isPresent()) {
             throw ApiException.conflit("COMPTE_EXISTANT", "Ce salarié a déjà un compte.");
         }
+        creer(employe, motDePasse, auteur, "");
+    }
+
+    /**
+     * Le salarie active lui-meme son compte, comme le candidat au Bloc 2.
+     * Matricule et email doivent designer le meme dossier ; le message d'erreur ne dit pas lequel est faux.
+     */
+    public void activer(ActivationCompteSalarieRequest requete) {
+        verifierLongueur(requete.motDePasse());
+        String email = requete.email().trim().toLowerCase(Locale.ROOT);
+        EmployeEmbauche employe = employeRepository.findByMatricule(requete.matricule().trim().toUpperCase(Locale.ROOT))
+                .filter(dossier -> dossier.getEmail() != null && dossier.getEmail().trim().equalsIgnoreCase(email))
+                .orElseThrow(() -> ApiException.badRequest("IDENTITE_INVALIDE",
+                        "Matricule ou email incorrect : vérifiez les informations de votre dossier."));
+        if (employe.getStatut() == StatutEmploye.SORTI) {
+            throw ApiException.conflit("SALARIE_SORTI", "Ce dossier correspond à un salarié sorti des effectifs.");
+        }
+        if (utilisateurRepository.findByEmployeId(employe.getId()).isPresent()) {
+            throw ApiException.conflit("COMPTE_EXISTANT", "Votre compte existe déjà : connectez-vous.");
+        }
+        creer(employe, requete.motDePasse(), email, " (activé par le salarié)");
+    }
+
+    private void creer(EmployeEmbauche employe, String motDePasse, String auteur, String precision) {
 
         String email = employe.getEmail().trim().toLowerCase(Locale.ROOT);
         Utilisateur compte = utilisateurRepository.findByEmailIgnoreCase(email).orElseGet(Utilisateur::new);
@@ -64,7 +90,7 @@ public class CompteSalarieService {
         utilisateurRepository.save(compte);
 
         trace.tracer(employe, ActionAudit.CREATION_COMPTE_SALARIE, auteur,
-                email + (conversion ? " (compte candidat converti)" : ""));
+                email + (conversion ? " (compte candidat converti)" : "") + precision);
     }
 
     public void changerMotDePasse(String email, ChangementMotDePasseRequest requete) {

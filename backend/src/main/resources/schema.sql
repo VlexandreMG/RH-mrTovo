@@ -461,6 +461,10 @@ CREATE TABLE IF NOT EXISTS mrtovo.pointage (
     UNIQUE (employe_id, date_pointage)
 );
 CREATE INDEX IF NOT EXISTS idx_pointage_date ON mrtovo.pointage(date_pointage);
+-- Bloc 6 : qui a produit le pointage. Le salarie pointe lui-meme ; le RH ajoute un oubli ou corrige.
+ALTER TABLE mrtovo.pointage ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'RH';
+ALTER TABLE mrtovo.pointage DROP CONSTRAINT IF EXISTS ck_pointage_source;
+ALTER TABLE mrtovo.pointage ADD CONSTRAINT ck_pointage_source CHECK (source IN ('SALARIE','RH','CORRIGE_RH'));
 
 -- Decision du RH sur les heures sup d'une semaine (semaine_debut est toujours un lundi).
 CREATE TABLE IF NOT EXISTS mrtovo.decision_heures_sup (
@@ -640,7 +644,7 @@ ALTER TABLE mrtovo.journal_audit DROP CONSTRAINT IF EXISTS ck_journal_audit_acti
 ALTER TABLE mrtovo.journal_audit ADD CONSTRAINT ck_journal_audit_action
     CHECK (action IN ('CONSULTATION_DOSSIER','MODIFICATION_IDENTITE','AJOUT_DOCUMENT',
                       'SUPPRESSION_DOCUMENT','TELECHARGEMENT_DOCUMENT',
-                      'AFFECTATION_REGIME','SAISIE_POINTAGE','CORRECTION_POINTAGE',
+                      'AFFECTATION_REGIME','SAISIE_POINTAGE','POINTAGE_ARRIVEE','POINTAGE_DEPART','CORRECTION_POINTAGE',
                       'SUPPRESSION_POINTAGE','DECISION_HEURES_SUP','REOUVERTURE_HEURES_SUP',
                       'CREATION_COMPTE_SALARIE','DEMANDE_CONGE','AVIS_MANAGER_CONGE','DECISION_RH_CONGE',
                       'ANNULATION_CONGE','AJOUT_JUSTIFICATIF','QUALIFICATION_ABSENCE',

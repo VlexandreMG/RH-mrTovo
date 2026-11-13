@@ -21,6 +21,10 @@ export const salarieApi = {
   },
   justificatif: (id) => apiGetBlob(`${BASE}/conges/${id}/justificatif`),
   annuler: (id) => apiPost(`${BASE}/conges/${id}/annuler`),
+  // Bloc 6 : le salarie pointe lui-meme ; l'heure est celle du serveur.
+  maSemaine: (date) => apiGet(`${BASE}/pointage?date=${date}`),
+  pointerArrivee: () => apiPost(`${BASE}/pointage/arrivee`),
+  pointerDepart: () => apiPost(`${BASE}/pointage/depart`),
   changerMotDePasse: (ancienMotDePasse, nouveauMotDePasse) =>
     apiPut(`${BASE}/mot-de-passe`, { ancienMotDePasse, nouveauMotDePasse })
 }

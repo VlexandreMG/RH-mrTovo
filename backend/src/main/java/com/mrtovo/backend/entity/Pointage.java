@@ -2,6 +2,8 @@ package com.mrtovo.backend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -55,4 +57,9 @@ public class Pointage {
 
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
+
+    /** Salarie, ajout du RH ou correction du RH : affiche dans l'ecran du RH. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false, length = 20)
+    private SourcePointage source = SourcePointage.RH;
 }

@@ -14,6 +14,13 @@ defineEmits(['voir-regimes'])
 
 const JOURS = ['Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.', 'Dim.']
 
+/** Le salarie pointe lui-meme ; le RH n'intervient que pour ajouter un oubli ou corriger. */
+const SOURCES = {
+  SALARIE: { libelle: 'Salarié', ton: 'is-success' },
+  RH: { libelle: 'Ajouté par le RH', ton: 'is-warning' },
+  CORRIGE_RH: { libelle: 'Corrigé par le RH', ton: 'is-info' }
+}
+
 const toast = useToastStore()
 const salaries = ref([])
 const employeId = ref(null)
@@ -89,9 +96,10 @@ async function enregistrer(jour) {
         date: jour.date,
         heureEntree: ligne.entree,
         heureSortie: ligne.sortie || null,
-        commentaire: ligne.commentaire
+        commentaire: ligne.commentaire,
+        motif: ligne.motif
       }))
-      toast.success('Pointage enregistré.')
+      toast.success('Pointage ajouté.')
     }
   } catch (e) {
     toast.error(e.message)
@@ -164,7 +172,7 @@ onMounted(async () => {
           <thead>
             <tr>
               <th>Jour</th><th>Prévu</th><th>Entrée</th><th>Sortie</th>
-              <th>Travaillé</th><th>Retard</th><th>Départ</th><th>H. sup</th><th>Saisie</th>
+              <th>Source</th><th>Travaillé</th><th>Retard</th><th>Départ</th><th>H. sup</th><th>Correction</th>
             </tr>
           </thead>
           <tbody>
@@ -183,6 +191,12 @@ onMounted(async () => {
               </td>
               <td><input v-model="lignes[jour.date].entree" type="time" :disabled="jour.date > aujourdhui" aria-label="Entrée" /></td>
               <td><input v-model="lignes[jour.date].sortie" type="time" :disabled="jour.date > aujourdhui" aria-label="Sortie" /></td>
+              <td>
+                <span v-if="jour.pointageSource" class="b3-badge" :class="SOURCES[jour.pointageSource].ton">
+                  {{ SOURCES[jour.pointageSource].libelle }}
+                </span>
+                <span v-else class="b3-muted">—</span>
+              </td>
               <td>{{ duree(jour.minutesTravaillees) }}</td>
               <td :class="{ alerte: jour.minutesRetard }">{{ duree(jour.minutesRetard) }}</td>
               <td :class="{ alerte: jour.minutesDepartAnticipe }">{{ duree(jour.minutesDepartAnticipe) }}</td>
@@ -190,12 +204,15 @@ onMounted(async () => {
               <td class="saisie">
                 <template v-if="modifiee(jour)">
                   <input
-                    v-if="jour.pointageId"
                     v-model="lignes[jour.date].motif"
-                    placeholder="Motif de la correction"
-                    aria-label="Motif de la correction"
+                    :placeholder="jour.pointageId ? 'Motif de la correction' : 'Motif de l\'ajout'"
+                    :aria-label="jour.pointageId ? 'Motif de la correction' : 'Motif de l\'ajout'"
                   />
-                  <button class="b3-btn is-primary" :disabled="!lignes[jour.date].entree" @click="enregistrer(jour)">
+                  <button
+                    class="b3-btn is-primary"
+                    :disabled="!lignes[jour.date].entree || !lignes[jour.date].motif.trim()"
+                    @click="enregistrer(jour)"
+                  >
                     Enregistrer
                   </button>
                 </template>

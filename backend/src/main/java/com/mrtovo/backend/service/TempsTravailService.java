@@ -312,6 +312,7 @@ public class TempsTravailService {
                 pointage != null ? pointage.getHeureEntree() : null,
                 pointage != null ? pointage.getHeureSortie() : null,
                 pointage != null ? pointage.getCommentaire() : null,
+                pointage != null ? pointage.getSource() : null,
                 absent,
                 conge != null ? conge.getTypeConge().getLibelle() : null,
                 conge != null ? conge.getTypeConge().isRemunere() : null,

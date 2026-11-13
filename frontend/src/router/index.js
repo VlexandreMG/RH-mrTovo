@@ -5,6 +5,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
+    { path: '/salaries/activation', name: 'activation-salarie', component: () => import('@/views/ActivationSalarieView.vue') },
     {
       path: '/candidats',
       component: () => import('@/layouts/CandidateLayout.vue'),
@@ -149,6 +150,12 @@ const router = createRouter({
           name: 'espace-salarie',
           component: () => import('@/views/salarie/EspaceSalarieView.vue'),
           meta: { roles: ['EMPLOYE', 'RH', 'MANAGER', 'FINANCE', 'DIRECTION'] }
+        },
+        {
+          path: 'salarie/pointage',
+          name: 'salarie-pointage',
+          component: () => import('@/views/salarie/PointageView.vue'),
+          meta: { roles: ['EMPLOYE'] }
         },
         {
           path: 'salarie/demande-conge',

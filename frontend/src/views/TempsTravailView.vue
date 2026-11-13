@@ -30,8 +30,9 @@ function ouvrirSemaine(destination) {
       <div>
         <h1>Temps de travail</h1>
         <p>
-          Horaires, pointages, retards et heures supplémentaires. Les retards de la semaine sont
-          compensés par les heures sup validées ; le solde alimente la paie.
+          Les salariés pointent eux-mêmes depuis leur espace ; ici, le RH contrôle, ajoute un oubli ou corrige,
+          toujours avec un motif. Les retards de la semaine sont compensés par les heures sup validées ;
+          le solde alimente la paie.
         </p>
       </div>
     </header>
