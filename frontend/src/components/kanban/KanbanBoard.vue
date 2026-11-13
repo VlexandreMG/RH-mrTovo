@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import KanbanColumn from './KanbanColumn.vue'
-import { offresApi, candidaturesApi, messageErreur, STATUT } from '@/services/api'
+import { offresApi, candidaturesApi, questionnaireApi, messageErreur, STATUT } from '@/services/api'
 
 const props = defineProps({ id: { type: [String, Number], required: true } })
 
@@ -9,6 +9,7 @@ const offre = ref(null)
 const candidatures = ref([])
 const chargement = ref(true)
 const erreur = ref('')
+const nbQuestions = ref(null)
 
 const COLONNES = [
   { statut: STATUT.A_TRAITER, titre: 'À traiter', couleur: '#8590a2' },
@@ -28,9 +29,14 @@ async function charger() {
   chargement.value = true
   erreur.value = ''
   try {
-    const [o, liste] = await Promise.all([offresApi.get(props.id), candidaturesApi.parOffre(props.id)])
+    const [o, liste, qcm] = await Promise.all([
+      offresApi.get(props.id),
+      candidaturesApi.parOffre(props.id),
+      questionnaireApi.get(props.id),
+    ])
     offre.value = o
     candidatures.value = liste
+    nbQuestions.value = qcm.questions.length
   } catch (e) {
     erreur.value = messageErreur(e)
   } finally {
@@ -52,8 +58,14 @@ onMounted(charger)
     <div class="entete">
       <RouterLink to="/offres" class="retour">← Retour aux offres</RouterLink>
       <h1>{{ offre?.titre ?? `Offre #${id}` }}</h1>
-      <p class="muted">Suivi des candidatures : présélection → test → entretien</p>
+      <p class="muted">Suivi des candidatures : présélection → test en ligne → entretien</p>
+      <RouterLink :to="`/offres/${id}/questionnaire`" class="btn btn-ghost lien-qcm">
+        Questionnaire du test<template v-if="nbQuestions"> ({{ nbQuestions }} questions)</template>
+      </RouterLink>
     </div>
+    <p v-if="nbQuestions === 0" class="alerte-qcm" role="status">
+      Aucun questionnaire pour cette offre : créez-le avant de retenir des candidats, ils devront le passer.
+    </p>
 
     <p v-if="chargement" class="muted">Chargement…</p>
     <p v-else-if="erreur" class="error">Impossible de charger les candidatures : {{ erreur }}</p>
@@ -76,6 +88,8 @@ onMounted(charger)
 .retour { font-size: 13px; color: var(--primary); text-decoration: none; }
 h1 { font-size: 22px; margin: 6px 0 2px; }
 .entete p { margin: 0; }
+.lien-qcm { margin-top: 10px; text-decoration: none; }
+.alerte-qcm { background: var(--warning-50); color: #8a5a06; padding: 10px 12px; border-radius: 10px; margin: 0 0 14px; }
 .board {
   display: flex;
   gap: 12px;

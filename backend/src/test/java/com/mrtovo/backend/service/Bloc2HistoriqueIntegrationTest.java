@@ -2,6 +2,8 @@ package com.mrtovo.backend.service;
 
 import com.mrtovo.backend.dto.HistoriqueCandidatureDTO;
 import com.mrtovo.backend.model.Statuts;
+import com.mrtovo.backend.repository.CandidatRepository;
+import com.mrtovo.backend.repository.UtilisateurRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -18,7 +20,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,6 +51,12 @@ class Bloc2HistoriqueIntegrationTest {
     private JdbcTemplate jdbc;
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private TestCandidatService testService;
+    @Autowired
+    private UtilisateurRepository utilisateurRepository;
+    @Autowired
+    private CandidatRepository candidatRepository;
 
     @AfterEach
     void deconnecter() {
@@ -59,11 +66,14 @@ class Bloc2HistoriqueIntegrationTest {
     @Test
     void leParcoursCompletEstTraceAvecAuteursEtStatuts() {
         Long candidatureId = deposer();
+        var questionnaire = TestEnLigneSupport.questionnairePret(testService, offreId());
+        int total = questionnaire.questions().size();
         connecter("rh@rh.com");
 
         service.preselectionner(candidatureId, true);
-        service.saisirNote(candidatureId, new BigDecimal("12"));
-        service.saisirNote(candidatureId, new BigDecimal("14.50"));
+        String email = service.getCandidature(candidatureId).email();
+        TestEnLigneSupport.compteCandidat(utilisateurRepository, candidatRepository, email);
+        testService.soumettre(email, candidatureId, TestEnLigneSupport.reponses(questionnaire, total - 1));
         service.deciderTest(candidatureId, true);
         var planifie = service.planifierEntretien(candidatureId, LocalDateTime.of(2030, 3, 4, 10, 0), "Salle 2");
         service.annulerEntretien(planifie.entretien().id());
@@ -72,7 +82,7 @@ class Bloc2HistoriqueIntegrationTest {
 
         List<HistoriqueCandidatureDTO> historique = service.historique(candidatureId);
 
-        assertEquals(List.of("CANDIDATURE_DEPOSEE", "PRESELECTION_RETENUE", "NOTE_SAISIE", "NOTE_CORRIGEE",
+        assertEquals(List.of("CANDIDATURE_DEPOSEE", "PRESELECTION_RETENUE", "TEST_PASSE",
                         "TEST_VALIDE", "ENTRETIEN_PLANIFIE", "ENTRETIEN_ANNULE", "ENTRETIEN_PLANIFIE",
                         "CANDIDAT_ACCEPTE"),
                 historique.stream().map(HistoriqueCandidatureDTO::action).toList());
@@ -82,29 +92,23 @@ class Bloc2HistoriqueIntegrationTest {
         assertNull(depot.ancienStatutId());
         assertEquals(Statuts.Candidature.A_TRAITER, depot.nouveauStatutId());
 
-        assertTrue(historique.subList(1, historique.size()).stream().allMatch(h -> h.auteur().equals("rh@rh.com")));
+        String note = RecrutementService.note(TestCandidatService.calculerNote(total - 1, total));
+        HistoriqueCandidatureDTO testPasse = historique.get(2);
+        assertEquals(email, testPasse.auteur(), "la note est produite par le candidat, pas par le RH");
+        assertNull(testPasse.nouveauStatutId(), "passer le test ne change pas le statut");
+        assertEquals(note + " · " + (total - 1) + " bonne(s) réponse(s) sur " + total, testPasse.details());
+
         assertEquals(Statuts.Candidature.A_TRAITER, historique.get(1).ancienStatutId());
         assertEquals(Statuts.Candidature.TEST, historique.get(1).nouveauStatutId());
-        assertEquals("12/20", historique.get(2).details());
-        assertEquals("12/20 → 14.5/20", historique.get(3).details());
-        assertNull(historique.get(3).nouveauStatutId(), "corriger une note ne change pas le statut");
-        assertEquals("14.5/20", historique.get(4).details());
+        for (int i : List.of(1, 3, 4, 5, 6, 7)) {
+            assertEquals("rh@rh.com", historique.get(i).auteur());
+        }
+        assertEquals(note, historique.get(3).details());
+        assertEquals("04/03/2030 à 10:00 · Salle 2", historique.get(4).details());
         assertEquals("04/03/2030 à 10:00 · Salle 2", historique.get(5).details());
-        assertEquals("04/03/2030 à 10:00 · Salle 2", historique.get(6).details());
-        assertEquals("05/03/2030 à 14:30", historique.get(7).details());
-        assertEquals(Statuts.Candidature.ACCEPTE, historique.get(8).nouveauStatutId());
-        assertEquals("Très bon profil", historique.get(8).details());
-    }
-
-    @Test
-    void uneNoteIdentiqueNAjouteAucuneLigne() {
-        Long candidatureId = deposer();
-        connecter("rh@rh.com");
-        service.preselectionner(candidatureId, true);
-        service.saisirNote(candidatureId, new BigDecimal("15"));
-        service.saisirNote(candidatureId, new BigDecimal("15.00"));
-
-        assertEquals(3, service.historique(candidatureId).size());
+        assertEquals("05/03/2030 à 14:30", historique.get(6).details());
+        assertEquals(Statuts.Candidature.ACCEPTE, historique.get(7).nouveauStatutId());
+        assertEquals("Très bon profil", historique.get(7).details());
     }
 
     @Test
@@ -152,9 +156,13 @@ class Bloc2HistoriqueIntegrationTest {
         }
     }
 
-    private Long deposer() {
-        Long offreId = service.listerOffresPubliques().stream().findFirst()
+    private Long offreId() {
+        return service.listerOffresPubliques().stream().findFirst()
                 .orElseThrow(() -> new AssertionError("Aucune offre publiée pour le scénario")).id();
+    }
+
+    private Long deposer() {
+        Long offreId = offreId();
         String email = "historique-" + UUID.randomUUID() + "@example.test";
         byte[] pdf = "%PDF-1.7\nhistorique".getBytes(StandardCharsets.US_ASCII);
         return service.postuler(offreId, "Rabe", "Test", email, null,

@@ -14,7 +14,6 @@ const enCours = ref(false)
 const erreur = ref('')
 
 // Champs de saisie locaux
-const note = ref(c.value.test?.note ?? '')
 const dateEntretien = ref('')
 const lieu = ref('')
 const commentaire = ref('')
@@ -99,15 +98,19 @@ const retenir = () => agir(() => candidaturesApi.preselection(c.value.id, true))
 const rejeter = () =>
   agir(() => candidaturesApi.preselection(c.value.id, false), `Rejeter la candidature de ${nom.value} ?`)
 
-// 2. Test
-const enregistrerNote = () => {
-  if (note.value === '' || note.value === null) {
-    erreur.value = 'Saisissez une note'
-    return
+// 2. Test : le candidat répond au QCM depuis son espace, la note en découle
+const testPasse = computed(() => Boolean(c.value.test?.dateSoumission))
+const reponsesOuvertes = ref(false)
+const reponses = ref([])
+async function basculerReponses() {
+  reponsesOuvertes.value = !reponsesOuvertes.value
+  if (!reponsesOuvertes.value) return
+  try {
+    reponses.value = (await candidaturesApi.resultatTest(c.value.id)).reponses
+  } catch (e) {
+    erreur.value = messageErreur(e)
   }
-  agir(() => candidaturesApi.saisirNote(c.value.id, Number(note.value)))
 }
-const noteModifiee = computed(() => String(note.value) !== String(c.value.test?.note ?? ''))
 const validerTest = () => agir(() => candidaturesApi.deciderTest(c.value.id, true))
 const refuserTest = () =>
   agir(() => candidaturesApi.deciderTest(c.value.id, false), `Refuser ${nom.value} au test ?`)
@@ -151,21 +154,35 @@ const annulerEntretien = () =>
       <button class="danger" :disabled="enCours" @click="rejeter">Rejeter</button>
     </div>
 
-    <!-- 2. TEST : saisie de la note puis décision du recruteur -->
+    <!-- 2. TEST : le candidat passe le QCM en ligne, puis le recruteur décide -->
     <div v-else-if="c.statutId === STATUT.TEST" class="bloc">
-      <label class="label">Note du test (/20)</label>
-      <div class="row">
-        <input v-model="note" type="number" min="0" max="20" step="0.25" @keyup.enter="enregistrerNote" />
-        <button :disabled="enCours || !noteModifiee" @click="enregistrerNote">Enregistrer</button>
-      </div>
-      <template v-if="c.test?.note != null">
-        <div class="note">Note : <strong>{{ c.test.note }}/20</strong></div>
-        <div class="actions">
-          <button class="success" :disabled="enCours || noteModifiee" @click="validerTest">Valider</button>
-          <button class="danger" :disabled="enCours || noteModifiee" @click="refuserTest">Refuser</button>
+      <template v-if="testPasse">
+        <div class="note">Note du test : <strong>{{ c.test.note }}/20</strong></div>
+        <div class="muted small">
+          {{ c.test.nbBonnes }} bonne(s) réponse(s) sur {{ c.test.nbQuestions }} · passé le {{ fmtDateHeure(c.test.dateSoumission) }}
         </div>
+        <button type="button" class="lien-historique" :aria-expanded="reponsesOuvertes" @click="basculerReponses">
+          {{ reponsesOuvertes ? 'Masquer les réponses' : 'Voir les réponses' }}
+        </button>
+        <ol v-if="reponsesOuvertes" class="reponses">
+          <li v-for="(r, i) in reponses" :key="i" :class="r.correcte ? 'juste' : 'faux'">
+            <div class="r-enonce">{{ r.enonce }}</div>
+            <div>{{ r.correcte ? '✓' : '✗' }} {{ r.reponseDonnee }}</div>
+            <div v-if="!r.correcte" class="muted">Bonne réponse : {{ r.bonneReponse }}</div>
+          </li>
+        </ol>
       </template>
-      <p v-else class="muted small">Décision possible une fois la note enregistrée.</p>
+      <!-- Note saisie à la main avant le test en ligne -->
+      <div v-else-if="c.test?.note != null" class="note">Note du test : <strong>{{ c.test.note }}/20</strong></div>
+      <p v-else class="muted small">
+        En attente des réponses du candidat<template v-if="c.test?.nbQuestions"> ({{ c.test.nbQuestions }} questions)</template>.
+        Il passe le test depuis son espace candidat.
+      </p>
+
+      <div v-if="c.test?.note != null" class="actions">
+        <button class="success" :disabled="enCours" @click="validerTest">Valider</button>
+        <button class="danger" :disabled="enCours" @click="refuserTest">Refuser</button>
+      </div>
     </div>
 
     <!-- 3. ATTENTE ENTRETIEN -->
@@ -294,4 +311,8 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .h-titre { font-weight: 600; }
 .h-statut, .h-details { word-break: break-word; }
 .h-meta { font-size: 11px; }
+.reponses { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.reponses .juste { color: var(--success); }
+.reponses .faux { color: var(--danger); }
+.r-enonce { color: var(--text); font-weight: 600; }
 </style>

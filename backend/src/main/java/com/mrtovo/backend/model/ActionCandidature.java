@@ -6,8 +6,10 @@ public enum ActionCandidature {
     CANDIDATURE_DEPOSEE("Candidature déposée"),
     PRESELECTION_RETENUE("Retenue à la présélection"),
     PRESELECTION_REJETEE("Rejetée à la présélection"),
+    /** Anciennes lignes : la note était saisie à la main par le RH avant le test en ligne. */
     NOTE_SAISIE("Note du test saisie"),
     NOTE_CORRIGEE("Note du test corrigée"),
+    TEST_PASSE("Test passé par le candidat"),
     TEST_VALIDE("Test validé"),
     TEST_ECHOUE("Test échoué"),
     ENTRETIEN_PLANIFIE("Entretien planifié"),

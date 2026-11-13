@@ -9,4 +9,5 @@ public interface CandidatureRepository extends JpaRepository<Candidature, Long> 
     List<Candidature> findByStatutCandidatureIdOrderByIdAsc(Long statutId);
     long countByOffreEmploiId(Long offreEmploiId);
     boolean existsByCandidatIdAndOffreEmploiId(Long candidatId, Long offreEmploiId);
+    List<Candidature> findByCandidatIdOrderByDateCandidatureDescIdDesc(Long candidatId);
 }

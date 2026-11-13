@@ -43,6 +43,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/candidat/**").hasRole("CANDIDAT")
                         // Qui a fait quoi sur une candidature : information reservee au RH.
                         .requestMatchers(HttpMethod.GET, "/api/candidatures/*/historique").hasRole("RH")
+                        // Bloc 2 : le QCM (bonnes réponses comprises) et les réponses d'un candidat, réservés au RH.
+                        .requestMatchers("/api/offres/*/questionnaire").hasRole("RH")
+                        .requestMatchers(HttpMethod.GET, "/api/candidatures/*/test").hasRole("RH")
                         .requestMatchers("/api/**").hasAnyRole("MANAGER", "RH", "FINANCE", "DIRECTION")
                         .anyRequest().authenticated()
                 )

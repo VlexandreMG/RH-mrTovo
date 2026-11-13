@@ -16,16 +16,22 @@ export const candidaturesApi = {
   parOffre: (offreId) => apiGet(`/candidatures/offre/${offreId}`),
   acceptees: () => apiGet('/candidatures/acceptees'),
   historique: (id) => apiGet(`/candidatures/${id}/historique`),
+  resultatTest: (id) => apiGet(`/candidatures/${id}/test`),
 
   // 1. Présélection
   preselection: (id, valide) => apiPost(`/candidatures/${id}/preselection`, { valide }),
 
-  // 2. Test
-  saisirNote: (id, note) => apiPut(`/candidatures/${id}/test/note`, { note }),
+  // 2. Test : la note vient des réponses du candidat, le RH décide
   deciderTest: (id, valide) => apiPost(`/candidatures/${id}/test/decision`, { valide }),
 
   // 3. Entretien
   planifierEntretien: (id, date, lieu) => apiPost(`/candidatures/${id}/entretiens`, { date, lieu }),
+}
+
+/** QCM d'une offre, écrit par le RH (bonnes réponses comprises). */
+export const questionnaireApi = {
+  get: (offreId) => apiGet(`/offres/${offreId}/questionnaire`),
+  enregistrer: (offreId, questions) => apiPut(`/offres/${offreId}/questionnaire`, { questions }),
 }
 
 export const entretiensApi = {

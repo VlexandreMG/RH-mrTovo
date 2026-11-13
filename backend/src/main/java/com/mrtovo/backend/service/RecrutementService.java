@@ -30,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Parcours d'une candidature :
  *   À traiter --présélection--> Test --décision test--> Attente entretien --résultat entretien--> Accepté
+ * Au statut Test, le candidat répond au QCM de l'offre (TestCandidatService) : la note en découle.
  *        \--rejet--> Refusé       \--échec--> Refusé                          \--refus--> Refusé
  * Une candidature "Accepté" est transmise à Sarobidy pour la suite (embauche).
  * Chaque action ajoute une ligne à l'historique de la candidature : qui, quoi, quand.
@@ -50,6 +51,8 @@ public class RecrutementService {
     private final UtilisateurRepository utilisateurRepo;
     private final CvStorageService cvStorageService;
     private final HistoriqueCandidatureRepository historiqueRepo;
+    private final QuestionTestRepository questionRepo;
+    private final ReponseCandidatRepository reponseRepo;
 
     private static final DateTimeFormatter FORMAT_ENTRETIEN = DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm");
 
@@ -176,6 +179,10 @@ public class RecrutementService {
         Candidature c = chargerCandidature(candidatureId);
         verifierStatut(c, Statuts.Candidature.A_TRAITER, "être présélectionnée");
 
+        if (retenue && questionRepo.countByOffreEmploiId(c.getOffreEmploi().getId()) == 0) {
+            throw new RegleMetierException(
+                    "Créez d'abord le questionnaire du test de cette offre : le candidat retenu doit pouvoir le passer.");
+        }
         if (retenue) {
             Evaluation test = new Evaluation();
             test.setCandidature(c);
@@ -190,32 +197,13 @@ public class RecrutementService {
 
     // ------------------------------------------------------------------- 2. Test
 
-    /** Saisie (ou correction) de la note : ne fait pas avancer la candidature. */
-    public CandidatureDTO saisirNote(Long candidatureId, BigDecimal note) {
-        Candidature c = chargerCandidature(candidatureId);
-        verifierStatut(c, Statuts.Candidature.TEST, "recevoir une note de test");
-        Evaluation test = chargerTest(c);
-        BigDecimal ancienne = test.getNoteTest();
-        if (ancienne != null && ancienne.compareTo(note) == 0) {
-            return versDTO(c);
-        }
-        test.setNoteTest(note);
-        if (ancienne == null) {
-            tracer(c, ActionCandidature.NOTE_SAISIE, null, null, auteurCourant(), note(note));
-        } else {
-            tracer(c, ActionCandidature.NOTE_CORRIGEE, null, null, auteurCourant(),
-                    note(ancienne) + " → " + note(note));
-        }
-        return versDTO(c);
-    }
-
     /** Le recruteur valide ou refuse le test après avoir vu la note. */
     public CandidatureDTO deciderTest(Long candidatureId, boolean valide) {
         Candidature c = chargerCandidature(candidatureId);
         verifierStatut(c, Statuts.Candidature.TEST, "faire l'objet d'une décision de test");
         Evaluation test = chargerTest(c);
         if (test.getNoteTest() == null) {
-            throw new RegleMetierException("Saisissez la note du test avant de prendre une décision");
+            throw new RegleMetierException("Le candidat n'a pas encore passé le test : aucune note à évaluer.");
         }
         if (valide) {
             test.setStatutEvaluation(statutEvaluationRepo.getReferenceById(Statuts.Evaluation.VALIDE));
@@ -305,7 +293,8 @@ public class RecrutementService {
         tracer(c, action, ancien, nouveau, auteurCourant(), details);
     }
 
-    private void tracer(Candidature c, ActionCandidature action, StatutCandidature ancien,
+    /** Aussi utilisé par TestCandidatService pour le test passé par le candidat. */
+    void tracer(Candidature c, ActionCandidature action, StatutCandidature ancien,
                         StatutCandidature nouveau, String auteur, String details) {
         HistoriqueCandidature ligne = new HistoriqueCandidature();
         ligne.setCandidature(c);
@@ -328,7 +317,7 @@ public class RecrutementService {
         return authentication.getName();
     }
 
-    private static String note(BigDecimal note) {
+    static String note(BigDecimal note) {
         return note == null ? "sans note" : note.stripTrailingZeros().toPlainString() + "/20";
     }
 
@@ -361,7 +350,12 @@ public class RecrutementService {
         if (test != null) {
             testDTO = new CandidatureDTO.TestDTO(test.getId(), test.getNoteTest(),
                     test.getStatutEvaluation() == null ? null : test.getStatutEvaluation().getId(),
-                    test.getStatutEvaluation() == null ? null : test.getStatutEvaluation().getLibelle());
+                    test.getStatutEvaluation() == null ? null : test.getStatutEvaluation().getLibelle(),
+                    test.getDateSoumission(),
+                    reponseRepo.countByEvaluationIdAndChoixCorrectTrue(test.getId()),
+                    test.getDateSoumission() != null
+                            ? reponseRepo.countByEvaluationId(test.getId())
+                            : questionRepo.countByOffreEmploiId(c.getOffreEmploi().getId()));
             entretienDTO = entretienRepo.findFirstByEvaluationIdOrderByIdDesc(test.getId())
                     .map(e -> new CandidatureDTO.EntretienDTO(e.getId(), e.getDateEntretien(), e.getLieu(),
                             e.getCommentaire(),

@@ -9,7 +9,7 @@
         </div>
       </div>
       <nav class="nav">
-        <RouterLink v-if="auth.role === 'CANDIDAT'" to="/candidats/espace">Mes propositions</RouterLink>
+        <RouterLink v-if="auth.role === 'CANDIDAT'" to="/candidats/espace">Mon espace</RouterLink>
         <RouterLink to="/candidats/offres">Offres</RouterLink>
         <RouterLink v-if="!auth.user" to="/candidats/inscription">Créer un compte</RouterLink>
         <RouterLink v-if="!auth.user" to="/login">Connexion</RouterLink>

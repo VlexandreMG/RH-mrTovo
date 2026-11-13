@@ -97,12 +97,45 @@ CREATE INDEX IF NOT EXISTS idx_historique_candidature ON historique_candidature(
 ALTER TABLE historique_candidature DROP CONSTRAINT IF EXISTS ck_historique_candidature_action;
 ALTER TABLE historique_candidature ADD CONSTRAINT ck_historique_candidature_action
     CHECK (action IN ('CANDIDATURE_DEPOSEE','PRESELECTION_RETENUE','PRESELECTION_REJETEE','NOTE_SAISIE',
-                      'NOTE_CORRIGEE','TEST_VALIDE','TEST_ECHOUE','ENTRETIEN_PLANIFIE','ENTRETIEN_ANNULE',
-                      'CANDIDAT_ACCEPTE','CANDIDAT_REFUSE'));
+                      'NOTE_CORRIGEE','TEST_PASSE','TEST_VALIDE','TEST_ECHOUE','ENTRETIEN_PLANIFIE',
+                      'ENTRETIEN_ANNULE','CANDIDAT_ACCEPTE','CANDIDAT_REFUSE'));
 
 -- Une ligne d'historique ne se corrige pas : toute modification est ignorée par la base.
 CREATE OR REPLACE RULE historique_candidature_non_modifiable AS
     ON UPDATE TO historique_candidature DO INSTEAD NOTHING;
+
+-- Test en ligne : QCM écrit par le RH pour chaque offre, passé par le candidat depuis son espace.
+CREATE TABLE IF NOT EXISTS question_test (
+    id SERIAL PRIMARY KEY,
+    offre_emploi_id INT NOT NULL REFERENCES offre_emploi(id) ON DELETE CASCADE,
+    ordre INT NOT NULL,
+    enonce TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_question_test_offre ON question_test(offre_emploi_id, ordre);
+
+CREATE TABLE IF NOT EXISTS choix_question (
+    id SERIAL PRIMARY KEY,
+    question_id INT NOT NULL REFERENCES question_test(id) ON DELETE CASCADE,
+    ordre INT NOT NULL,
+    libelle VARCHAR(500) NOT NULL,
+    correct BOOLEAN NOT NULL DEFAULT FALSE
+);
+CREATE INDEX IF NOT EXISTS idx_choix_question ON choix_question(question_id);
+-- Une seule bonne réponse par question.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_choix_question_correct ON choix_question(question_id) WHERE correct;
+
+-- Moment où le candidat a envoyé ses réponses (null : test pas encore passé).
+ALTER TABLE evaluation ADD COLUMN IF NOT EXISTS date_soumission TIMESTAMP;
+
+-- Une réponse par question et par test. Sans cascade vers la question : une question
+-- à laquelle un candidat a répondu ne peut plus être supprimée.
+CREATE TABLE IF NOT EXISTS reponse_candidat (
+    id SERIAL PRIMARY KEY,
+    evaluation_id INT NOT NULL REFERENCES evaluation(id) ON DELETE CASCADE,
+    question_id INT NOT NULL REFERENCES question_test(id),
+    choix_id INT NOT NULL REFERENCES choix_question(id),
+    UNIQUE (evaluation_id, question_id)
+);
 
 -- Remet le search_path par défaut : la connexion retourne au pool et sert ensuite au Bloc 1 (schéma public).
 RESET search_path;
