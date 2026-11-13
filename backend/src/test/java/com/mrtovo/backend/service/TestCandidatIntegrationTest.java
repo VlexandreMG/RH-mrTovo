@@ -132,7 +132,27 @@ class TestCandidatIntegrationTest {
 
         assertEquals(Statuts.Candidature.ATTENTE_ENTRETIEN,
                 recrutement.deciderTest(candidature(email), true).statutId());
-        assertEquals("TERMINE", tests.testsDuCandidat(email).get(0).etat());
+        assertEquals("REUSSI", tests.testsDuCandidat(email).get(0).etat());
+    }
+
+    @Test
+    void unCandidatRefuseAuTestLeVoitDansSonEspace() {
+        String email = candidatRetenu();
+        tests.soumettre(email, candidature(email), TestEnLigneSupport.reponses(questionnaire, 0));
+
+        assertEquals(Statuts.Candidature.REFUSE, recrutement.deciderTest(candidature(email), false).statutId());
+
+        assertEquals("REFUSE", tests.testsDuCandidat(email).get(0).etat());
+        assertThrows(RegleMetierException.class, () -> tests.testAPasser(email, candidature(email)));
+    }
+
+    @Test
+    void unRejetALaPreselectionNeMontreAucunTest() {
+        String email = deposer();
+        TestEnLigneSupport.compteCandidat(utilisateurs, candidats, email);
+        recrutement.preselectionner(candidature(email), false);
+
+        assertTrue(tests.testsDuCandidat(email).isEmpty(), "aucun test n'a été proposé : rien à afficher");
     }
 
     @Test

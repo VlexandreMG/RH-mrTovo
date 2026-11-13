@@ -219,7 +219,12 @@ public class TestCandidatService {
 
     private String etat(Candidature c, Evaluation test) {
         if (!c.getStatutCandidature().getId().equals(Statuts.Candidature.TEST)) {
-            return "TERMINE";
+            // Le RH a decide : le candidat doit savoir si son test l'a arrete ou l'a fait avancer.
+            long resultat = test.getStatutEvaluation() == null ? 0 : test.getStatutEvaluation().getId();
+            if (resultat == Statuts.Evaluation.ECHOUE) {
+                return "REFUSE";
+            }
+            return resultat == Statuts.Evaluation.VALIDE ? "REUSSI" : "TERMINE";
         }
         if (test.getDateSoumission() != null) {
             return "ENVOYE";

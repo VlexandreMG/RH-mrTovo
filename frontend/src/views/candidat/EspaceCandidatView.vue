@@ -140,6 +140,8 @@ const ETATS_TEST = {
   EN_PREPARATION: 'Bientôt disponible',
   ENVOYE: 'Réponses envoyées',
   EVALUE: 'Évalué par le recruteur',
+  REUSSI: 'Test réussi',
+  REFUSE: 'Candidature refusée',
   TERMINE: 'Terminé',
 }
 
@@ -150,6 +152,8 @@ function detailTest(test) {
     const le = new Date(test.dateSoumission).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
     return `Envoyé le ${le}. Le recruteur étudie votre test.`
   }
+  if (test.etat === 'REFUSE') return 'Votre candidature a été refusée durant le test.'
+  if (test.etat === 'REUSSI') return 'Vous avez réussi le test. La suite se fait en entretien avec le recruteur.'
   return 'La suite de votre candidature se poursuit avec le recruteur.'
 }
 const chargement = ref(true)
@@ -325,6 +329,8 @@ button:disabled { opacity: .55; cursor: wait; }
 .passer { padding: .7rem 1.1rem; border-radius: 10px; background: #5151c7; color: #fff; font-weight: 700; white-space: nowrap; text-decoration: none; }
 .status.envoye { background: #e7f7ed; color: #19733a; }
 .status.en_preparation { background: #fff6e5; color: #8a5a06; }
+.status.reussi { background: #e7f7ed; color: #19733a; }
+.status.refuse { background: #fff0ef; color: #a92c21; }
 @media (max-width: 760px) { .test { flex-direction: column; align-items: flex-start; } }
 @media (max-width: 760px) { .heading, .deadline { align-items: flex-start; flex-direction: column; } .facts { grid-template-columns: 1fr 1fr; } }
 </style>

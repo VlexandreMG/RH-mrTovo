@@ -11,7 +11,10 @@ public final class TestCandidatDTO {
 
     private TestCandidatDTO() {}
 
-    /** etat : A_PASSER, EN_PREPARATION (pas encore de questionnaire), ENVOYE, EVALUE (note manuelle), TERMINE. */
+    /**
+     * etat : A_PASSER, EN_PREPARATION (pas encore de questionnaire), ENVOYE (en attente de la decision du RH),
+     * EVALUE (note manuelle), REUSSI (test valide), REFUSE (candidature refusee au test), TERMINE (autre cas).
+     */
     public record Resume(Long candidatureId, String offreTitre, String etat, int nbQuestions,
                          LocalDateTime dateSoumission) {}
 
