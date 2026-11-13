@@ -4,6 +4,8 @@ J'ai écrit cette documentation pour expliquer tout ce que j'ai ajouté au Bloc 
 
 ![Plan de l'historique des candidatures](./BLOC2-HISTORIQUE-PLAN.png)
 
+> **Mise à jour — test en ligne.** Depuis l'ajout du test en ligne, le RH ne saisit plus la note : le candidat passe un QCM et la note en découle. Les actions `NOTE_SAISIE` et `NOTE_CORRIGEE` décrites ici ne concernent plus que les anciennes lignes ; une nouvelle action, `TEST_PASSE`, est signée par le candidat. Voir [`BLOC2-TEST-EN-LIGNE.md`](./BLOC2-TEST-EN-LIGNE.md).
+
 ## Sommaire
 
 1. [Pourquoi cet ajout](#1-pourquoi-cet-ajout)
