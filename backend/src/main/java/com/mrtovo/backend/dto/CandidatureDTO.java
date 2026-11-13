@@ -21,7 +21,9 @@ public record CandidatureDTO(
         TestDTO test,
         EntretienDTO entretien
 ) {
-    public record TestDTO(Long id, BigDecimal note, Long statutId, String statut) {}
+    /** dateSoumission : null tant que le candidat n'a pas passé le test en ligne. */
+    public record TestDTO(Long id, BigDecimal note, Long statutId, String statut,
+                          LocalDateTime dateSoumission, long nbBonnes, long nbQuestions) {}
 
     public record EntretienDTO(Long id, LocalDateTime date, String lieu, String commentaire,
                                Long statutId, String statut) {}

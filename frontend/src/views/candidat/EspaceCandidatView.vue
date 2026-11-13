@@ -4,11 +4,26 @@
       <div>
         <p class="eyebrow">Portail candidat</p>
         <h1>Bonjour {{ auth.user?.nom }}</h1>
-        <p>Consultez vos propositions et répondez au recruteur depuis cet espace.</p>
+        <p>Passez vos tests, consultez vos propositions et répondez au recruteur depuis cet espace.</p>
       </div>
       <RouterLink class="secondary" to="/candidats/offres">Parcourir les offres</RouterLink>
     </header>
 
+    <section v-if="tests.length" class="tests" aria-labelledby="titre-tests">
+      <h2 id="titre-tests">Mes tests</h2>
+      <article v-for="test in tests" :key="test.candidatureId" class="test">
+        <div>
+          <h3>{{ test.offreTitre }}</h3>
+          <p>{{ detailTest(test) }}</p>
+        </div>
+        <RouterLink v-if="test.etat === 'A_PASSER'" class="passer" :to="`/candidats/tests/${test.candidatureId}`">
+          Passer le test
+        </RouterLink>
+        <span v-else class="status" :class="test.etat.toLowerCase()">{{ ETATS_TEST[test.etat] }}</span>
+      </article>
+    </section>
+
+    <h2 v-if="tests.length" class="titre-propositions">Mes propositions</h2>
     <p v-if="erreur" class="state error">{{ erreur }}</p>
     <p v-else-if="chargement" class="state">Chargement de vos propositions…</p>
     <p v-else-if="!propositions.length" class="state">
@@ -118,6 +133,29 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const propositions = ref([])
+const tests = ref([])
+
+const ETATS_TEST = {
+  A_PASSER: 'À passer',
+  EN_PREPARATION: 'Bientôt disponible',
+  ENVOYE: 'Réponses envoyées',
+  EVALUE: 'Évalué par le recruteur',
+  REUSSI: 'Test réussi',
+  REFUSE: 'Candidature refusée',
+  TERMINE: 'Terminé',
+}
+
+function detailTest(test) {
+  if (test.etat === 'A_PASSER') return `${test.nbQuestions} question(s) à choix multiples · une seule tentative`
+  if (test.etat === 'EN_PREPARATION') return 'Le recruteur prépare encore les questions. Revenez plus tard.'
+  if (test.etat === 'ENVOYE') {
+    const le = new Date(test.dateSoumission).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+    return `Envoyé le ${le}. Le recruteur étudie votre test.`
+  }
+  if (test.etat === 'REFUSE') return 'Votre candidature a été refusée durant le test.'
+  if (test.etat === 'REUSSI') return 'Vous avez réussi le test. La suite se fait en entretien avec le recruteur.'
+  return 'La suite de votre candidature se poursuit avec le recruteur.'
+}
 const chargement = ref(true)
 const erreur = ref('')
 const actionErreur = ref('')
@@ -129,7 +167,12 @@ const negociation = reactive({ salaireRevendique: '', avantageRevendique: '', mo
 async function charger() {
   erreur.value = ''
   try {
-    propositions.value = await apiGet('/candidat/propositions')
+    const [listePropositions, listeTests] = await Promise.all([
+      apiGet('/candidat/propositions'),
+      apiGet('/candidat/tests'),
+    ])
+    propositions.value = listePropositions
+    tests.value = listeTests
   } catch (e) {
     erreur.value = e.message || 'Impossible de charger vos propositions.'
   } finally {
@@ -278,5 +321,16 @@ button:disabled { opacity: .55; cursor: wait; }
 .feedback { margin: 0; font-weight: 600; }
 .success { color: #19733a; }
 .error { color: #a92c21; }
+.tests { display: grid; gap: .8rem; }
+.tests h2, .titre-propositions { margin: 0; color: #14143a; font-size: 1.15rem; }
+.test { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.1rem 1.3rem; border-radius: 16px; background: #fff; box-shadow: 0 30px 55px -45px rgba(50,50,130,.55); }
+.test h3 { margin: 0 0 .3rem; color: #14143a; font-size: 1rem; }
+.test p { margin: 0; color: rgba(20,20,58,.7); }
+.passer { padding: .7rem 1.1rem; border-radius: 10px; background: #5151c7; color: #fff; font-weight: 700; white-space: nowrap; text-decoration: none; }
+.status.envoye { background: #e7f7ed; color: #19733a; }
+.status.en_preparation { background: #fff6e5; color: #8a5a06; }
+.status.reussi { background: #e7f7ed; color: #19733a; }
+.status.refuse { background: #fff0ef; color: #a92c21; }
+@media (max-width: 760px) { .test { flex-direction: column; align-items: flex-start; } }
 @media (max-width: 760px) { .heading, .deadline { align-items: flex-start; flex-direction: column; } .facts { grid-template-columns: 1fr 1fr; } }
 </style>

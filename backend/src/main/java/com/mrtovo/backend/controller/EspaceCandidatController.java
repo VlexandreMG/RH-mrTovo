@@ -1,5 +1,9 @@
 package com.mrtovo.backend.controller;
 
+import com.mrtovo.backend.dto.ReponsesTestRequest;
+import com.mrtovo.backend.dto.TestCandidatDTO;
+import com.mrtovo.backend.service.TestCandidatService;
+
 import com.mrtovo.backend.service.EspaceCandidatService;
 import com.mrtovo.backend.dto.NegociationDto;
 import com.mrtovo.backend.dto.PropositionDto;
@@ -21,9 +25,28 @@ import java.util.List;
 public class EspaceCandidatController {
 
     private final EspaceCandidatService service;
+    private final TestCandidatService testService;
 
-    public EspaceCandidatController(EspaceCandidatService service) {
+    public EspaceCandidatController(EspaceCandidatService service, TestCandidatService testService) {
         this.service = service;
+        this.testService = testService;
+    }
+
+    /** Bloc 2 : les tests du candidat connecté. */
+    @GetMapping("/tests")
+    public List<TestCandidatDTO.Resume> tests(Authentication authentication) {
+        return testService.testsDuCandidat(authentication.getName());
+    }
+
+    @GetMapping("/tests/{candidatureId}")
+    public TestCandidatDTO.Questionnaire test(Authentication authentication, @PathVariable Long candidatureId) {
+        return testService.testAPasser(authentication.getName(), candidatureId);
+    }
+
+    @PostMapping("/tests/{candidatureId}/reponses")
+    public TestCandidatDTO.Resume repondre(Authentication authentication, @PathVariable Long candidatureId,
+                                           @Valid @RequestBody ReponsesTestRequest requete) {
+        return testService.soumettre(authentication.getName(), candidatureId, requete);
     }
 
     @GetMapping("/propositions")

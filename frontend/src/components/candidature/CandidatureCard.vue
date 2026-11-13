@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { apiGetBlob } from '@/api/http'
 import {
   candidaturesApi, entretiensApi, messageErreur,
@@ -14,7 +14,6 @@ const enCours = ref(false)
 const erreur = ref('')
 
 // Champs de saisie locaux
-const note = ref(c.value.test?.note ?? '')
 const dateEntretien = ref('')
 const lieu = ref('')
 const commentaire = ref('')
@@ -65,20 +64,53 @@ async function agir(appel, confirmation) {
 
 const nom = computed(() => `${c.value.prenom} ${c.value.nom}`)
 
+// Historique : chargé à la demande, puis rechargé après chaque action sur la carte.
+const REPRISE = 'reprise des données'
+const historiqueOuvert = ref(false)
+const historique = ref([])
+const erreurHistorique = ref('')
+const historiqueIncomplet = computed(() => {
+  const dernier = historique.value.at(-1)
+  const dernierStatut = [...historique.value].reverse().find((h) => h.nouveauStatutId)?.nouveauStatutId
+  return Boolean(dernier) && dernierStatut !== c.value.statutId
+})
+
+async function chargerHistorique() {
+  erreurHistorique.value = ''
+  try {
+    historique.value = await candidaturesApi.historique(c.value.id)
+  } catch (e) {
+    erreurHistorique.value = messageErreur(e)
+  }
+}
+
+function basculerHistorique() {
+  historiqueOuvert.value = !historiqueOuvert.value
+  if (historiqueOuvert.value) chargerHistorique()
+}
+
+watch(c, () => {
+  if (historiqueOuvert.value) chargerHistorique()
+})
+
 // 1. Présélection
 const retenir = () => agir(() => candidaturesApi.preselection(c.value.id, true))
 const rejeter = () =>
   agir(() => candidaturesApi.preselection(c.value.id, false), `Rejeter la candidature de ${nom.value} ?`)
 
-// 2. Test
-const enregistrerNote = () => {
-  if (note.value === '' || note.value === null) {
-    erreur.value = 'Saisissez une note'
-    return
+// 2. Test : le candidat répond au QCM depuis son espace, la note en découle
+const testPasse = computed(() => Boolean(c.value.test?.dateSoumission))
+const reponsesOuvertes = ref(false)
+const reponses = ref([])
+async function basculerReponses() {
+  reponsesOuvertes.value = !reponsesOuvertes.value
+  if (!reponsesOuvertes.value) return
+  try {
+    reponses.value = (await candidaturesApi.resultatTest(c.value.id)).reponses
+  } catch (e) {
+    erreur.value = messageErreur(e)
   }
-  agir(() => candidaturesApi.saisirNote(c.value.id, Number(note.value)))
 }
-const noteModifiee = computed(() => String(note.value) !== String(c.value.test?.note ?? ''))
 const validerTest = () => agir(() => candidaturesApi.deciderTest(c.value.id, true))
 const refuserTest = () =>
   agir(() => candidaturesApi.deciderTest(c.value.id, false), `Refuser ${nom.value} au test ?`)
@@ -122,21 +154,35 @@ const annulerEntretien = () =>
       <button class="danger" :disabled="enCours" @click="rejeter">Rejeter</button>
     </div>
 
-    <!-- 2. TEST : saisie de la note puis décision du recruteur -->
+    <!-- 2. TEST : le candidat passe le QCM en ligne, puis le recruteur décide -->
     <div v-else-if="c.statutId === STATUT.TEST" class="bloc">
-      <label class="label">Note du test (/20)</label>
-      <div class="row">
-        <input v-model="note" type="number" min="0" max="20" step="0.25" @keyup.enter="enregistrerNote" />
-        <button :disabled="enCours || !noteModifiee" @click="enregistrerNote">Enregistrer</button>
-      </div>
-      <template v-if="c.test?.note != null">
-        <div class="note">Note : <strong>{{ c.test.note }}/20</strong></div>
-        <div class="actions">
-          <button class="success" :disabled="enCours || noteModifiee" @click="validerTest">Valider</button>
-          <button class="danger" :disabled="enCours || noteModifiee" @click="refuserTest">Refuser</button>
+      <template v-if="testPasse">
+        <div class="note">Note du test : <strong>{{ c.test.note }}/20</strong></div>
+        <div class="muted small">
+          {{ c.test.nbBonnes }} bonne(s) réponse(s) sur {{ c.test.nbQuestions }} · passé le {{ fmtDateHeure(c.test.dateSoumission) }}
         </div>
+        <button type="button" class="lien-historique" :aria-expanded="reponsesOuvertes" @click="basculerReponses">
+          {{ reponsesOuvertes ? 'Masquer les réponses' : 'Voir les réponses' }}
+        </button>
+        <ol v-if="reponsesOuvertes" class="reponses">
+          <li v-for="(r, i) in reponses" :key="i" :class="r.correcte ? 'juste' : 'faux'">
+            <div class="r-enonce">{{ r.enonce }}</div>
+            <div>{{ r.correcte ? '✓' : '✗' }} {{ r.reponseDonnee }}</div>
+            <div v-if="!r.correcte" class="muted">Bonne réponse : {{ r.bonneReponse }}</div>
+          </li>
+        </ol>
       </template>
-      <p v-else class="muted small">Décision possible une fois la note enregistrée.</p>
+      <!-- Note saisie à la main avant le test en ligne -->
+      <div v-else-if="c.test?.note != null" class="note">Note du test : <strong>{{ c.test.note }}/20</strong></div>
+      <p v-else class="muted small">
+        En attente des réponses du candidat<template v-if="c.test?.nbQuestions"> ({{ c.test.nbQuestions }} questions)</template>.
+        Il passe le test depuis son espace candidat.
+      </p>
+
+      <div v-if="c.test?.note != null" class="actions">
+        <button class="success" :disabled="enCours" @click="validerTest">Valider</button>
+        <button class="danger" :disabled="enCours" @click="refuserTest">Refuser</button>
+      </div>
     </div>
 
     <!-- 3. ATTENTE ENTRETIEN -->
@@ -185,6 +231,32 @@ const annulerEntretien = () =>
     </div>
 
     <p v-if="erreur" class="error">{{ erreur }}</p>
+
+    <button
+      type="button"
+      class="lien-historique"
+      :aria-expanded="historiqueOuvert"
+      @click="basculerHistorique"
+    >
+      {{ historiqueOuvert ? "Masquer l'historique" : 'Historique' }}
+    </button>
+    <div v-if="historiqueOuvert" class="historique">
+      <p v-if="erreurHistorique" class="error">{{ erreurHistorique }}</p>
+      <ol v-else>
+        <li v-for="h in historique" :key="h.id">
+          <div class="h-titre">{{ h.actionLibelle }}</div>
+          <div v-if="h.ancienStatut || h.nouveauStatut" class="h-statut">
+            {{ h.ancienStatut ?? '—' }} → {{ h.nouveauStatut }}
+          </div>
+          <div v-if="h.details" class="h-details">{{ h.details }}</div>
+          <!-- Une ligne reprise ne connaît que le jour de la candidature, pas l'heure. -->
+          <div class="h-meta muted">{{ h.auteur === REPRISE ? fmtDate(h.date) : fmtDateHeure(h.date) }} · {{ h.auteur }}</div>
+        </li>
+      </ol>
+      <p v-if="historiqueIncomplet" class="muted small">
+        Les étapes antérieures à la mise en place de l'historique ne sont pas connues.
+      </p>
+    </div>
   </article>
 </template>
 
@@ -214,4 +286,33 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .tag.ok { background: var(--success-bg); color: var(--success); }
 .tag.ko { background: var(--danger-bg); color: var(--danger); }
 .cr { font-size: 12px; font-style: italic; margin: 0; color: var(--muted); }
+.lien-historique {
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--primary);
+  cursor: pointer;
+}
+.historique { border-top: 1px solid var(--border); padding-top: 8px; }
+.historique ol { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 2px solid var(--border); }
+.historique li { position: relative; padding: 0 0 8px 8px; font-size: 12px; }
+.historique li::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.h-titre { font-weight: 600; }
+.h-statut, .h-details { word-break: break-word; }
+.h-meta { font-size: 11px; }
+.reponses { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.reponses .juste { color: var(--success); }
+.reponses .faux { color: var(--danger); }
+.r-enonce { color: var(--text); font-weight: 600; }
 </style>

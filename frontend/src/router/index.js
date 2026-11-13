@@ -25,6 +25,12 @@ const router = createRouter({
           component: () => import('@/views/candidat/InscriptionCandidatView.vue')
         },
         {
+          path: 'tests/:id',
+          name: 'test-candidat',
+          component: () => import('@/views/candidat/TestCandidatView.vue'),
+          meta: { requiresAuth: true, roles: ['CANDIDAT'] }
+        },
+        {
           path: 'espace',
           name: 'espace-candidat',
           component: () => import('@/views/candidat/EspaceCandidatView.vue'),
@@ -51,6 +57,13 @@ const router = createRouter({
           path: 'offres',
           name: 'offres',
           component: () => import('@/components/offre/OffreList.vue'),
+          meta: { roles: ['RH'] }
+        },
+        {
+          path: 'offres/:id/questionnaire',
+          name: 'questionnaire',
+          component: () => import('@/views/QuestionnaireView.vue'),
+          props: true,
           meta: { roles: ['RH'] }
         },
         {
@@ -151,9 +164,13 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+<<<<<<< HEAD
   if (auth.role === 'EMPLOYE' && !to.path.startsWith('/salarie')) return '/salarie'
+=======
+  // Un candidat reste dans son portail : espace, offres et tests.
+>>>>>>> main
   if (auth.role === 'CANDIDAT' && to.path !== '/candidats/espace'
-      && !to.path.startsWith('/candidats/offres')) return '/candidats/espace'
+      && !to.path.startsWith('/candidats/offres') && !to.path.startsWith('/candidats/tests/')) return '/candidats/espace'
   if (auth.role === 'CANDIDAT' && to.path === '/login') return '/candidats/espace'
   if (to.meta.requiresAuth && !auth.user) return '/login'
   if (to.path === '/login' && auth.user) return '/'

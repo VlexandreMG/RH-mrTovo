@@ -3,6 +3,7 @@ package com.mrtovo.backend.controller;
 import com.mrtovo.backend.dto.*;
 import com.mrtovo.backend.service.CvStorageService;
 import com.mrtovo.backend.service.RecrutementService;
+import com.mrtovo.backend.service.TestCandidatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +22,7 @@ import java.util.List;
 public class CandidatureController {
 
     private final RecrutementService service;
+    private final TestCandidatService testService;
 
     @GetMapping("/offre/{offreId}")
     public List<CandidatureDTO> parOffre(@PathVariable Long offreId) {
@@ -47,6 +49,12 @@ public class CandidatureController {
                 .body(cv.resource());
     }
 
+    /** Historique de la candidature, du depot a la decision. Reserve au RH par SecurityConfig. */
+    @GetMapping("/{id}/historique")
+    public List<HistoriqueCandidatureDTO> historique(@PathVariable Long id) {
+        return service.historique(id);
+    }
+
     @GetMapping("/{id}")
     public CandidatureDTO get(@PathVariable Long id) {
         return service.getCandidature(id);
@@ -58,10 +66,10 @@ public class CandidatureController {
         return service.preselectionner(id, req.valide());
     }
 
-    /** Saisie de la note du test (0 à 20). */
-    @PutMapping("/{id}/test/note")
-    public CandidatureDTO note(@PathVariable Long id, @Valid @RequestBody NoteRequest req) {
-        return service.saisirNote(id, req.note());
+    /** Réponses du candidat au QCM, avec les bonnes réponses. Réservé au RH par SecurityConfig. */
+    @GetMapping("/{id}/test")
+    public ResultatTestDTO resultatTest(@PathVariable Long id) {
+        return testService.resultat(id);
     }
 
     /** Décision du recruteur après avoir vu la note : { "valide": true|false }. */

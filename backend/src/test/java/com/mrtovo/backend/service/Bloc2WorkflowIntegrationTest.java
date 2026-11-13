@@ -5,6 +5,7 @@ import com.mrtovo.backend.repository.CandidatRepository;
 import com.mrtovo.backend.repository.CandidatureRepository;
 import com.mrtovo.backend.repository.EvaluationRepository;
 import com.mrtovo.backend.repository.OffreEmploiRepository;
+import com.mrtovo.backend.repository.UtilisateurRepository;
 import com.mrtovo.backend.exception.RegleMetierException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -50,6 +50,10 @@ class Bloc2WorkflowIntegrationTest {
     private CandidatureRepository candidatureRepository;
     @Autowired
     private EvaluationRepository evaluationRepository;
+    @Autowired
+    private TestCandidatService testService;
+    @Autowired
+    private UtilisateurRepository utilisateurRepository;
 
     @Test
     void twoCandidatesAreSelectedTestedInterviewedAndDecidedIndependently() {
@@ -57,6 +61,7 @@ class Bloc2WorkflowIntegrationTest {
                 .findFirst().orElseThrow(() -> new AssertionError("Aucune offre publiée pour le scénario"))
                 .id();
         var offre = offreRepository.findById(offreId).orElseThrow();
+        var questionnaire = TestEnLigneSupport.questionnairePret(testService, offreId);
         String suffix = UUID.randomUUID().toString();
         var rejected = recrutementService.postuler(offreId, "Refus", "Test",
                 "refus-" + suffix + "@example.test", null, cvPdf());
@@ -74,8 +79,11 @@ class Bloc2WorkflowIntegrationTest {
         assertNotNull(candidatureTest.test());
 
         assertThrows(RegleMetierException.class, () -> recrutementService.deciderTest(retained.id(), true));
-        var note = new BigDecimal("16.50");
-        recrutementService.saisirNote(retained.id(), note);
+        // Le candidat passe le test depuis son espace : la note vient de ses reponses.
+        TestEnLigneSupport.compteCandidat(utilisateurRepository, candidatRepository, retained.email());
+        int total = questionnaire.questions().size();
+        testService.soumettre(retained.email(), retained.id(), TestEnLigneSupport.reponses(questionnaire, total));
+        var note = TestCandidatService.calculerNote(total, total);
         assertEquals(Statuts.Candidature.ATTENTE_ENTRETIEN,
                 recrutementService.deciderTest(retained.id(), true).statutId());
 
@@ -91,8 +99,11 @@ class Bloc2WorkflowIntegrationTest {
                 .anyMatch(candidature -> candidature.id().equals(retained.id())));
         assertEquals(note, evaluationRepository.findByCandidatureId(retained.id()).orElseThrow().getNoteTest());
 
+        // Meme email sur la meme offre : refuse. Le retenu a desormais un compte : il doit s'y connecter.
         assertThrows(RegleMetierException.class, () -> recrutementService.postuler(offreId,
-                "Autre nom", "Test", retained.email(), null, cvPdf()));
+                "Autre nom", "Test", rejected.email(), null, cvPdf()));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> recrutementService.postuler(offreId, "Autre nom", "Test", retained.email(), null, cvPdf()));
         assertEquals(Statuts.OffreEmploi.OUVERTE,
                 offre.getStatutOffreEmploi().getId());
     }
