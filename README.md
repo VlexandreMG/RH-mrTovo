@@ -39,3 +39,4 @@ Menu **Candidatures** (rôle RH) : liste des offres, puis tableau kanban par off
 Chaque demande crée son offre d'emploi : **En attente** à la création, **Fermée** si la Direction refuse, **Ouverte** à l'ouverture du recrutement.
 Parcours d'une candidature : À traiter → (présélection) Test → (note /20 + décision) Attente entretien → Accepté / Refusé.
 Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.java` et `frontend/src/services/api.js`.
+**Historique (traçabilité)** : chaque action sur une candidature ajoute une ligne, jamais modifiée, avec son auteur, sa date, l'ancien et le nouveau statut. Sont tracés : dépôt, présélection, note saisie ou corrigée, décision du test, entretien planifié ou annulé, résultat. Bouton **Historique** sur chaque carte du kanban (RH uniquement). Les candidatures antérieures ne gardent que leur dépôt, marqué « reprise des données ».

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { apiGetBlob } from '@/api/http'
 import {
   candidaturesApi, entretiensApi, messageErreur,
@@ -64,6 +64,35 @@ async function agir(appel, confirmation) {
 }
 
 const nom = computed(() => `${c.value.prenom} ${c.value.nom}`)
+
+// Historique : chargé à la demande, puis rechargé après chaque action sur la carte.
+const REPRISE = 'reprise des données'
+const historiqueOuvert = ref(false)
+const historique = ref([])
+const erreurHistorique = ref('')
+const historiqueIncomplet = computed(() => {
+  const dernier = historique.value.at(-1)
+  const dernierStatut = [...historique.value].reverse().find((h) => h.nouveauStatutId)?.nouveauStatutId
+  return Boolean(dernier) && dernierStatut !== c.value.statutId
+})
+
+async function chargerHistorique() {
+  erreurHistorique.value = ''
+  try {
+    historique.value = await candidaturesApi.historique(c.value.id)
+  } catch (e) {
+    erreurHistorique.value = messageErreur(e)
+  }
+}
+
+function basculerHistorique() {
+  historiqueOuvert.value = !historiqueOuvert.value
+  if (historiqueOuvert.value) chargerHistorique()
+}
+
+watch(c, () => {
+  if (historiqueOuvert.value) chargerHistorique()
+})
 
 // 1. Présélection
 const retenir = () => agir(() => candidaturesApi.preselection(c.value.id, true))
@@ -185,6 +214,32 @@ const annulerEntretien = () =>
     </div>
 
     <p v-if="erreur" class="error">{{ erreur }}</p>
+
+    <button
+      type="button"
+      class="lien-historique"
+      :aria-expanded="historiqueOuvert"
+      @click="basculerHistorique"
+    >
+      {{ historiqueOuvert ? "Masquer l'historique" : 'Historique' }}
+    </button>
+    <div v-if="historiqueOuvert" class="historique">
+      <p v-if="erreurHistorique" class="error">{{ erreurHistorique }}</p>
+      <ol v-else>
+        <li v-for="h in historique" :key="h.id">
+          <div class="h-titre">{{ h.actionLibelle }}</div>
+          <div v-if="h.ancienStatut || h.nouveauStatut" class="h-statut">
+            {{ h.ancienStatut ?? '—' }} → {{ h.nouveauStatut }}
+          </div>
+          <div v-if="h.details" class="h-details">{{ h.details }}</div>
+          <!-- Une ligne reprise ne connaît que le jour de la candidature, pas l'heure. -->
+          <div class="h-meta muted">{{ h.auteur === REPRISE ? fmtDate(h.date) : fmtDateHeure(h.date) }} · {{ h.auteur }}</div>
+        </li>
+      </ol>
+      <p v-if="historiqueIncomplet" class="muted small">
+        Les étapes antérieures à la mise en place de l'historique ne sont pas connues.
+      </p>
+    </div>
   </article>
 </template>
 
@@ -214,4 +269,29 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .tag.ok { background: var(--success-bg); color: var(--success); }
 .tag.ko { background: var(--danger-bg); color: var(--danger); }
 .cr { font-size: 12px; font-style: italic; margin: 0; color: var(--muted); }
+.lien-historique {
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--primary);
+  cursor: pointer;
+}
+.historique { border-top: 1px solid var(--border); padding-top: 8px; }
+.historique ol { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 2px solid var(--border); }
+.historique li { position: relative; padding: 0 0 8px 8px; font-size: 12px; }
+.historique li::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.h-titre { font-weight: 600; }
+.h-statut, .h-details { word-break: break-word; }
+.h-meta { font-size: 11px; }
 </style>

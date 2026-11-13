@@ -15,6 +15,7 @@ export const offresApi = {
 export const candidaturesApi = {
   parOffre: (offreId) => apiGet(`/candidatures/offre/${offreId}`),
   acceptees: () => apiGet('/candidatures/acceptees'),
+  historique: (id) => apiGet(`/candidatures/${id}/historique`),
 
   // 1. Présélection
   preselection: (id, valide) => apiPost(`/candidatures/${id}/preselection`, { valide }),

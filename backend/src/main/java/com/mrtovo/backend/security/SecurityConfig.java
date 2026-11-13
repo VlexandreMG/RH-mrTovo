@@ -41,6 +41,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/public/**").permitAll()
                         .requestMatchers("/api/candidat/**").hasRole("CANDIDAT")
+                        // Qui a fait quoi sur une candidature : information reservee au RH.
+                        .requestMatchers(HttpMethod.GET, "/api/candidatures/*/historique").hasRole("RH")
                         .requestMatchers("/api/**").hasAnyRole("MANAGER", "RH", "FINANCE", "DIRECTION")
                         .anyRequest().authenticated()
                 )

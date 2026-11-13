@@ -1,6 +1,7 @@
 package com.mrtovo.backend.service;
 
 import com.mrtovo.backend.dto.CandidatureDTO;
+import com.mrtovo.backend.dto.HistoriqueCandidatureDTO;
 import com.mrtovo.backend.dto.OffreDTO;
 import com.mrtovo.backend.exception.RegleMetierException;
 import com.mrtovo.backend.exception.RessourceIntrouvableException;
@@ -10,6 +11,7 @@ import com.mrtovo.backend.model.*;
 import com.mrtovo.backend.model.Candidat;
 import com.mrtovo.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -29,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
  *   À traiter --présélection--> Test --décision test--> Attente entretien --résultat entretien--> Accepté
  *        \--rejet--> Refusé       \--échec--> Refusé                          \--refus--> Refusé
  * Une candidature "Accepté" est transmise à Sarobidy pour la suite (embauche).
+ * Chaque action ajoute une ligne à l'historique de la candidature : qui, quoi, quand.
  */
 @Service
 @RequiredArgsConstructor
@@ -45,6 +49,9 @@ public class RecrutementService {
     private final CandidatRepository candidatRepo;
     private final UtilisateurRepository utilisateurRepo;
     private final CvStorageService cvStorageService;
+    private final HistoriqueCandidatureRepository historiqueRepo;
+
+    private static final DateTimeFormatter FORMAT_ENTRETIEN = DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm");
 
     // ------------------------------------------------------------------ Lecture
 
@@ -122,6 +129,9 @@ public class RecrutementService {
         candidature.setStatutCandidature(
                 statutCandidatureRepo.findById(Statuts.Candidature.A_TRAITER).orElseThrow());
         candidatureRepo.save(candidature);
+        // Le depot est public : l'auteur est le candidat lui-meme, identifie par son email.
+        tracer(candidature, ActionCandidature.CANDIDATURE_DEPOSEE, null, candidature.getStatutCandidature(),
+                emailNormalise, "Offre « " + offre.getTitre() + " »");
         return versDTO(candidature);
     }
 
@@ -152,6 +162,14 @@ public class RecrutementService {
         return versDTO(chargerCandidature(id));
     }
 
+    @Transactional(readOnly = true)
+    public List<HistoriqueCandidatureDTO> historique(Long candidatureId) {
+        chargerCandidature(candidatureId);
+        return historiqueRepo.findByCandidatureIdOrderByDateActionAscIdAsc(candidatureId).stream()
+                .map(RecrutementService::historiqueVersDTO)
+                .toList();
+    }
+
     // ------------------------------------------------------------ 1. Présélection
 
     public CandidatureDTO preselectionner(Long candidatureId, boolean retenue) {
@@ -163,9 +181,9 @@ public class RecrutementService {
             test.setCandidature(c);
             test.setStatutEvaluation(statutEvaluationRepo.getReferenceById(Statuts.Evaluation.EN_ATTENTE));
             evaluationRepo.save(test);
-            changerStatut(c, Statuts.Candidature.TEST);
+            changerStatut(c, Statuts.Candidature.TEST, ActionCandidature.PRESELECTION_RETENUE, null);
         } else {
-            changerStatut(c, Statuts.Candidature.REFUSE);
+            changerStatut(c, Statuts.Candidature.REFUSE, ActionCandidature.PRESELECTION_REJETEE, null);
         }
         return versDTO(c);
     }
@@ -177,7 +195,17 @@ public class RecrutementService {
         Candidature c = chargerCandidature(candidatureId);
         verifierStatut(c, Statuts.Candidature.TEST, "recevoir une note de test");
         Evaluation test = chargerTest(c);
+        BigDecimal ancienne = test.getNoteTest();
+        if (ancienne != null && ancienne.compareTo(note) == 0) {
+            return versDTO(c);
+        }
         test.setNoteTest(note);
+        if (ancienne == null) {
+            tracer(c, ActionCandidature.NOTE_SAISIE, null, null, auteurCourant(), note(note));
+        } else {
+            tracer(c, ActionCandidature.NOTE_CORRIGEE, null, null, auteurCourant(),
+                    note(ancienne) + " → " + note(note));
+        }
         return versDTO(c);
     }
 
@@ -191,10 +219,11 @@ public class RecrutementService {
         }
         if (valide) {
             test.setStatutEvaluation(statutEvaluationRepo.getReferenceById(Statuts.Evaluation.VALIDE));
-            changerStatut(c, Statuts.Candidature.ATTENTE_ENTRETIEN);
+            changerStatut(c, Statuts.Candidature.ATTENTE_ENTRETIEN, ActionCandidature.TEST_VALIDE,
+                    note(test.getNoteTest()));
         } else {
             test.setStatutEvaluation(statutEvaluationRepo.getReferenceById(Statuts.Evaluation.ECHOUE));
-            changerStatut(c, Statuts.Candidature.REFUSE);
+            changerStatut(c, Statuts.Candidature.REFUSE, ActionCandidature.TEST_ECHOUE, note(test.getNoteTest()));
         }
         return versDTO(c);
     }
@@ -214,13 +243,16 @@ public class RecrutementService {
         e.setLieu(lieu);
         e.setStatutEntretien(statutEntretienRepo.getReferenceById(Statuts.Entretien.PLANIFIE));
         entretienRepo.save(e);
+        tracer(c, ActionCandidature.ENTRETIEN_PLANIFIE, null, null, auteurCourant(), decrireEntretien(e));
         return versDTO(c);
     }
 
     public CandidatureDTO annulerEntretien(Long entretienId) {
         Entretien e = chargerEntretienPlanifie(entretienId);
         e.setStatutEntretien(statutEntretienRepo.getReferenceById(Statuts.Entretien.ANNULE));
-        return versDTO(e.getEvaluation().getCandidature());
+        Candidature c = e.getEvaluation().getCandidature();
+        tracer(c, ActionCandidature.ENTRETIEN_ANNULE, null, null, auteurCourant(), decrireEntretien(e));
+        return versDTO(c);
     }
 
     /** Résultat de l'entretien : accepté (→ Sarobidy) ou refusé. */
@@ -230,7 +262,9 @@ public class RecrutementService {
         verifierStatut(c, Statuts.Candidature.ATTENTE_ENTRETIEN, "recevoir un résultat d'entretien");
         e.setCommentaire(commentaire);
         e.setStatutEntretien(statutEntretienRepo.getReferenceById(Statuts.Entretien.TERMINE));
-        changerStatut(c, accepte ? Statuts.Candidature.ACCEPTE : Statuts.Candidature.REFUSE);
+        changerStatut(c, accepte ? Statuts.Candidature.ACCEPTE : Statuts.Candidature.REFUSE,
+                accepte ? ActionCandidature.CANDIDAT_ACCEPTE : ActionCandidature.CANDIDAT_REFUSE,
+                commentaire == null || commentaire.isBlank() ? null : commentaire.trim());
         return versDTO(c);
     }
 
@@ -263,8 +297,53 @@ public class RecrutementService {
         }
     }
 
-    private void changerStatut(Candidature c, long statutId) {
-        c.setStatutCandidature(statutCandidatureRepo.findById(statutId).orElseThrow());
+    /** Seul point de changement de statut : il ne peut donc pas y en avoir un sans sa ligne d'historique. */
+    private void changerStatut(Candidature c, long statutId, ActionCandidature action, String details) {
+        StatutCandidature ancien = c.getStatutCandidature();
+        StatutCandidature nouveau = statutCandidatureRepo.findById(statutId).orElseThrow();
+        c.setStatutCandidature(nouveau);
+        tracer(c, action, ancien, nouveau, auteurCourant(), details);
+    }
+
+    private void tracer(Candidature c, ActionCandidature action, StatutCandidature ancien,
+                        StatutCandidature nouveau, String auteur, String details) {
+        HistoriqueCandidature ligne = new HistoriqueCandidature();
+        ligne.setCandidature(c);
+        ligne.setAction(action);
+        ligne.setAncienStatut(ancien);
+        ligne.setNouveauStatut(nouveau);
+        ligne.setAuteur(auteur);
+        ligne.setDetails(details);
+        ligne.setDateAction(LocalDateTime.now());
+        historiqueRepo.save(ligne);
+    }
+
+    /** L'auteur vient du compte connecte, jamais de la requete. */
+    private static String auteurCourant() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            return "inconnu";
+        }
+        return authentication.getName();
+    }
+
+    private static String note(BigDecimal note) {
+        return note == null ? "sans note" : note.stripTrailingZeros().toPlainString() + "/20";
+    }
+
+    private static String decrireEntretien(Entretien e) {
+        return e.getDateEntretien().format(FORMAT_ENTRETIEN)
+                + (e.getLieu() == null || e.getLieu().isBlank() ? "" : " · " + e.getLieu());
+    }
+
+    private static HistoriqueCandidatureDTO historiqueVersDTO(HistoriqueCandidature h) {
+        StatutCandidature ancien = h.getAncienStatut();
+        StatutCandidature nouveau = h.getNouveauStatut();
+        return new HistoriqueCandidatureDTO(h.getId(), h.getAction().name(), h.getAction().getLibelle(),
+                ancien == null ? null : ancien.getId(), ancien == null ? null : ancien.getLibelle(),
+                nouveau == null ? null : nouveau.getId(), nouveau == null ? null : nouveau.getLibelle(),
+                h.getAuteur(), h.getDetails(), h.getDateAction());
     }
 
     private OffreDTO versDTO(OffreEmploi o) {

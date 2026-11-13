@@ -47,6 +47,12 @@ public class CandidatureController {
                 .body(cv.resource());
     }
 
+    /** Historique de la candidature, du depot a la decision. Reserve au RH par SecurityConfig. */
+    @GetMapping("/{id}/historique")
+    public List<HistoriqueCandidatureDTO> historique(@PathVariable Long id) {
+        return service.historique(id);
+    }
+
     @GetMapping("/{id}")
     public CandidatureDTO get(@PathVariable Long id) {
         return service.getCandidature(id);

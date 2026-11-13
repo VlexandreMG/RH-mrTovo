@@ -81,6 +81,29 @@ CREATE TABLE IF NOT EXISTS entretien (
     statut_entretien_id INT REFERENCES statut_entretien(id)
 );
 
+-- Historique d'une candidature : une ligne par action, avec son auteur et sa date. Jamais modifiée.
+CREATE TABLE IF NOT EXISTS historique_candidature (
+    id SERIAL PRIMARY KEY,
+    candidature_id INT NOT NULL REFERENCES candidature(id) ON DELETE CASCADE,
+    action VARCHAR(40) NOT NULL,
+    ancien_statut_id INT REFERENCES statut_candidature(id),
+    nouveau_statut_id INT REFERENCES statut_candidature(id),
+    auteur VARCHAR(255) NOT NULL,
+    details TEXT,
+    date_action TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_historique_candidature ON historique_candidature(candidature_id, date_action);
+
+ALTER TABLE historique_candidature DROP CONSTRAINT IF EXISTS ck_historique_candidature_action;
+ALTER TABLE historique_candidature ADD CONSTRAINT ck_historique_candidature_action
+    CHECK (action IN ('CANDIDATURE_DEPOSEE','PRESELECTION_RETENUE','PRESELECTION_REJETEE','NOTE_SAISIE',
+                      'NOTE_CORRIGEE','TEST_VALIDE','TEST_ECHOUE','ENTRETIEN_PLANIFIE','ENTRETIEN_ANNULE',
+                      'CANDIDAT_ACCEPTE','CANDIDAT_REFUSE'));
+
+-- Une ligne d'historique ne se corrige pas : toute modification est ignorée par la base.
+CREATE OR REPLACE RULE historique_candidature_non_modifiable AS
+    ON UPDATE TO historique_candidature DO INSTEAD NOTHING;
+
 -- Remet le search_path par défaut : la connexion retourne au pool et sert ensuite au Bloc 1 (schéma public).
 RESET search_path;
 
