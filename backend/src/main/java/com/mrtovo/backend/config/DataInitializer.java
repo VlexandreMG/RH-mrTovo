@@ -10,12 +10,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /** Données de démonstration, insérées uniquement si les tables sont vides. */
 @Configuration
 public class DataInitializer {
+
+    /** Marqueur des mouvements créés par le seeder de soldes : rend l'initialisation rejouable. */
+    private static final String AUTEUR_DEMO_SOLDE = "demo-solde";
 
     @Bean
     CommandLineRunner initData(DepartementRepository departementRepository,
@@ -123,6 +128,155 @@ public class DataInitializer {
             creerUtilisateur(utilisateurRepository, encoder, "Directeur Général", "direction@rh.com", "direction123", RoleUtilisateur.DIRECTION, null);
             creerUtilisateur(utilisateurRepository, encoder, "Employee Finance", "emp@mail.com", "emp123", RoleUtilisateur.EMPLOYE, deps.get("Finance"));
         };
+    }
+
+    /**
+     * Bloc 7 : deux dossiers de démonstration pour visualiser des soldes variés sans script SQL.
+     * Aina a ~20 mois d'ancienneté (solde confortable), Luc ~5 mois (solde plus serré).
+     */
+    @Bean
+    CommandLineRunner initSoldesCongeDemo(EmployeEmbaucheRepository employeRepository,
+                                          ContratRepository contratRepository,
+                                          TypeCongeRepository typeCongeRepository,
+                                          DroitCongeRepository droitCongeRepository,
+                                          DemandeCongeRepository demandeCongeRepository,
+                                          UtilisateurRepository utilisateurRepository,
+                                          PasswordEncoder encoder) {
+        return args -> {
+            TypeConge congePaye = typeCongeRepository.findByCodeIgnoreCase("CONGE_PAYE").orElse(null);
+            if (congePaye == null) {
+                return;
+            }
+
+            LocalDate lundi = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+            String moisPaie = YearMonth.now().minusMonths(1).toString();
+
+            EmployeEmbauche aina = employeDemo(employeRepository, contratRepository,
+                    "EMP-DEMO-SOLDE-01", "Aina", "Ranaivo", "demo.solde.01@rh.com",
+                    LocalDate.now().minusMonths(20), new BigDecimal("1250000"));
+            EmployeEmbauche luc = employeDemo(employeRepository, contratRepository,
+                    "EMP-DEMO-SOLDE-02", "Luc", "Andria", "demo.solde.02@rh.com",
+                    LocalDate.now().minusMonths(5).minusDays(10), new BigDecimal("900000"));
+
+            // Comptes de connexion : les soldes sont ainsi visibles dans l'espace salarie.
+            creerCompteDemo(utilisateurRepository, encoder, aina);
+            creerCompteDemo(utilisateurRepository, encoder, luc);
+
+            if (!dejaInitialise(droitCongeRepository, demandeCongeRepository, aina)) {
+                ajouterDroit(droitCongeRepository, aina, TypeDroitConge.AJUSTEMENT,
+                        "3", "Prime d'anciennete (demo)", null, null);
+                ajouterDemande(demandeCongeRepository, aina, congePaye, lundi.minusWeeks(10), 5,
+                        "Conges d'ete (demo)", StatutDemandeConge.VALIDEE);
+                ajouterDemande(demandeCongeRepository, aina, congePaye, lundi.minusWeeks(5), 2,
+                        "Rendez-vous personnel (demo)", StatutDemandeConge.VALIDEE);
+                ajouterDemande(demandeCongeRepository, aina, congePaye, lundi.plusWeeks(4), 3,
+                        "Long week-end (demo)", StatutDemandeConge.EN_ATTENTE_RH);
+                ajouterDroit(droitCongeRepository, aina, TypeDroitConge.INDEMNISATION,
+                        "-2", "Jours non pris (demo)", moisPaie, "83333.33");
+            }
+
+            if (!dejaInitialise(droitCongeRepository, demandeCongeRepository, luc)) {
+                ajouterDroit(droitCongeRepository, luc, TypeDroitConge.AJUSTEMENT,
+                        "2", "Conge supplementaire negocie (demo)", null, null);
+                ajouterDemande(demandeCongeRepository, luc, congePaye, lundi.minusWeeks(3), 2,
+                        "Demarche administrative (demo)", StatutDemandeConge.VALIDEE);
+                ajouterDemande(demandeCongeRepository, luc, congePaye, lundi.plusWeeks(2), 5,
+                        "Conges de fin d'annee (demo)", StatutDemandeConge.EN_ATTENTE_MANAGER);
+                ajouterDemande(demandeCongeRepository, luc, congePaye, lundi.plusWeeks(6), 5,
+                        "Conges refusees (demo)", StatutDemandeConge.REFUSEE);
+                ajouterDroit(droitCongeRepository, luc, TypeDroitConge.INDEMNISATION,
+                        "-1", "Jour non pris (demo)", moisPaie, "30000.00");
+            }
+        };
+    }
+
+    private EmployeEmbauche employeDemo(EmployeEmbaucheRepository employeRepository,
+                                        ContratRepository contratRepository,
+                                        String matricule, String prenom, String nom, String email,
+                                        LocalDate dateEntree, BigDecimal salaire) {
+        EmployeEmbauche employe = employeRepository.findByMatricule(matricule).orElseGet(() -> {
+            EmployeEmbauche nouveau = new EmployeEmbauche();
+            nouveau.setMatricule(matricule);
+            nouveau.setPrenom(prenom);
+            nouveau.setNom(nom);
+            nouveau.setEmail(email);
+            nouveau.setDateEmbauche(dateEntree);
+            nouveau.setDateEntree(dateEntree);
+            nouveau.setStatut(StatutEmploye.ACTIF);
+            nouveau.setDossierMinimal(false);
+            return employeRepository.save(nouveau);
+        });
+
+        if (contratRepository.findByEmployeIdOrderByDateDebutAsc(employe.getId()).isEmpty()) {
+            Contrat contrat = new Contrat();
+            contrat.setEmploye(employe);
+            contrat.setReference("CTR-" + matricule);
+            contrat.setTypeContrat(TypeContrat.CDI);
+            contrat.setDateDebut(dateEntree);
+            contrat.setSalaire(salaire);
+            contrat.setStatutContrat(StatutContrat.ACTIF);
+            contratRepository.save(contrat);
+        }
+        return employe;
+    }
+
+    private void creerCompteDemo(UtilisateurRepository utilisateurRepository, PasswordEncoder encodeur,
+                                 EmployeEmbauche employe) {
+        if (utilisateurRepository.findByEmployeId(employe.getId()).isPresent()
+                || utilisateurRepository.existsByEmailIgnoreCase(employe.getEmail())) {
+            return;
+        }
+        Utilisateur compte = new Utilisateur();
+        compte.setNom(employe.getNomComplet());
+        compte.setEmail(employe.getEmail().toLowerCase(Locale.ROOT));
+        compte.setMotDePasse(encodeur.encode("salarie123"));
+        compte.setRole(RoleUtilisateur.EMPLOYE);
+        compte.setEmploye(employe);
+        utilisateurRepository.save(compte);
+    }
+
+    private boolean dejaInitialise(DroitCongeRepository droitCongeRepository,
+                                   DemandeCongeRepository demandeCongeRepository,
+                                   EmployeEmbauche employe) {
+        boolean droits = droitCongeRepository.findByEmployeIdOrderByDateCreationDesc(employe.getId()).stream()
+                .anyMatch(droit -> AUTEUR_DEMO_SOLDE.equals(droit.getCreePar()));
+        boolean demandes = demandeCongeRepository.findByEmployeIdOrderByDateDebutDesc(employe.getId()).stream()
+                .anyMatch(demande -> AUTEUR_DEMO_SOLDE.equals(demande.getDemandePar()));
+        return droits || demandes;
+    }
+
+    private void ajouterDroit(DroitCongeRepository droitCongeRepository, EmployeEmbauche employe,
+                              TypeDroitConge type, String jours, String motif,
+                              String moisPaie, String montant) {
+        DroitConge droit = new DroitConge();
+        droit.setEmploye(employe);
+        droit.setTypeDroit(type);
+        droit.setJours(new BigDecimal(jours));
+        droit.setMotif(motif);
+        droit.setMoisPaie(moisPaie);
+        droit.setMontant(montant != null ? new BigDecimal(montant) : null);
+        droit.setCreePar(AUTEUR_DEMO_SOLDE);
+        droitCongeRepository.save(droit);
+    }
+
+    private void ajouterDemande(DemandeCongeRepository demandeCongeRepository, EmployeEmbauche employe,
+                                TypeConge type, LocalDate debut, int nbJours, String motif,
+                                StatutDemandeConge statut) {
+        DemandeConge demande = new DemandeConge();
+        demande.setEmploye(employe);
+        demande.setTypeConge(type);
+        demande.setDateDebut(debut);
+        demande.setDateFin(debut.plusDays(nbJours - 1L));
+        demande.setNbJours(nbJours);
+        demande.setMotif(motif);
+        demande.setStatut(statut);
+        demande.setDemandePar(AUTEUR_DEMO_SOLDE);
+        if (statut == StatutDemandeConge.VALIDEE || statut == StatutDemandeConge.REFUSEE) {
+            demande.setDecidePar("rh@rh.com");
+            demande.setDateDecision(java.time.LocalDateTime.now());
+            demande.setCommentaireRh(statut == StatutDemandeConge.VALIDEE ? "Validee (demo)" : "Refusee (demo)");
+        }
+        demandeCongeRepository.save(demande);
     }
 
     /** Chaque demande doit avoir son offre d'emploi : rattrape celles créées avant ce lien. */

@@ -2,10 +2,12 @@ package com.mrtovo.backend.controller;
 
 import com.mrtovo.backend.dto.ChangementMotDePasseRequest;
 import com.mrtovo.backend.dto.DemandeCongeDto;
+import com.mrtovo.backend.dto.DroitCongeDto;
 import com.mrtovo.backend.dto.SalarieProfilDto;
 import com.mrtovo.backend.service.CompteSalarieService;
 import com.mrtovo.backend.service.CongeService;
 import com.mrtovo.backend.service.EspaceSalarieService;
+import com.mrtovo.backend.service.SoldeCongeService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -35,19 +37,28 @@ public class EspaceSalarieController {
 
     private final EspaceSalarieService espaceService;
     private final CongeService congeService;
+    private final SoldeCongeService soldeService;
     private final CompteSalarieService compteService;
 
     public EspaceSalarieController(EspaceSalarieService espaceService,
                                    CongeService congeService,
+                                   SoldeCongeService soldeService,
                                    CompteSalarieService compteService) {
         this.espaceService = espaceService;
         this.congeService = congeService;
+        this.soldeService = soldeService;
         this.compteService = compteService;
     }
 
     @GetMapping("/moi")
     public SalarieProfilDto moi(Authentication auth) {
         return espaceService.profil(auth.getName());
+    }
+
+    /** Les mouvements de solde du salarie connecte (ajustements et indemnisations du RH). */
+    @GetMapping("/mouvements")
+    public List<DroitCongeDto> mesMouvements(Authentication auth) {
+        return soldeService.mouvements(espaceService.employeId(auth.getName()));
     }
 
     @GetMapping("/conges")

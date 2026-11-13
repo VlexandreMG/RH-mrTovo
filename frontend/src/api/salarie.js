@@ -5,6 +5,7 @@ const BASE = '/salarie'
 
 export const salarieApi = {
   moi: () => apiGet(`${BASE}/moi`),
+  mouvements: () => apiGet(`${BASE}/mouvements`),
   demandes: () => apiGet(`${BASE}/conges`),
   demander(demande, justificatif) {
     const form = new FormData()

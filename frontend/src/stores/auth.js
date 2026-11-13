@@ -3,8 +3,11 @@ import { ref, computed } from 'vue'
 import { apiPost } from '@/api/http'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
-  const token = ref(localStorage.getItem('token') || '')
+  localStorage.removeItem('user')
+  localStorage.removeItem('token')
+
+  const user = ref(null)
+  const token = ref('')
 
   const role = computed(() => user.value?.role)
   const initiales = computed(() =>
@@ -17,15 +20,11 @@ export const useAuthStore = defineStore('auth', () => {
     // Les appels suivants sont authentifiés en HTTP Basic (le serveur identifie l'utilisateur lui-même).
     token.value = 'Basic ' + btoa(unescape(encodeURIComponent(`${identifiant}:${motDePasse}`)))
     user.value = u
-    localStorage.setItem('user', JSON.stringify(u))
-    localStorage.setItem('token', token.value)
   }
 
   function logout() {
     user.value = null
     token.value = ''
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
   }
 
   return { user, token, role, initiales, login, logout }
