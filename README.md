@@ -41,7 +41,8 @@ Parcours d'une candidature : À traiter → (présélection) Test → (test en l
 **Test en ligne** : le RH écrit le QCM de chaque offre (bouton **Questionnaire du test** du kanban ; une seule bonne réponse par question). Un candidat ne peut être retenu que si ce questionnaire existe. Le candidat crée son compte (page **Créer un compte**, avec l'email de sa candidature : le compte se relie seul à son dossier), puis passe le test depuis **Mon espace**, en une seule tentative. La note sur 20 est calculée par le serveur (bonnes réponses / questions × 20) et ne se modifie pas ; le RH voit la note et le détail des réponses, puis valide ou refuse. Le questionnaire se verrouille dès qu'un candidat a répondu.
 Documentation : [`docs/bloc2-test/BLOC2-TEST-EN-LIGNE.md`](./docs/bloc2-test/BLOC2-TEST-EN-LIGNE.md). Plan : [`docs/bloc2-test/BLOC2-TEST-EN-LIGNE-PLAN.png`](./docs/bloc2-test/BLOC2-TEST-EN-LIGNE-PLAN.png).
 Les identifiants de statuts sont fixés dans `data.sql` et repris dans `Statuts.java` et `frontend/src/services/api.js`.
-<<<<<<< HEAD
+**Historique (traçabilité)** : chaque action sur une candidature ajoute une ligne, jamais modifiée, avec son auteur, sa date, l'ancien et le nouveau statut. Sont tracés : dépôt, présélection, note saisie ou corrigée, décision du test, entretien planifié ou annulé, résultat. Bouton **Historique** sur chaque carte du kanban (RH uniquement). Les candidatures antérieures ne gardent que leur dépôt, marqué « reprise des données ».
+Documentation : [`docs/bloc2-test/BLOC2-HISTORIQUE.md`](./docs/bloc2-test/BLOC2-HISTORIQUE.md). Plan : [`docs/bloc2-test/BLOC2-HISTORIQUE-PLAN.png`](./docs/bloc2-test/BLOC2-HISTORIQUE-PLAN.png).
 
 ## Bloc 5 : dossier administratif du salarié
 
@@ -60,7 +61,3 @@ Documentation complète : [`docs/BLOC7-CONGES-ABSENCES.md`](./docs/BLOC7-CONGES-
 
 Le menu **Congés** propose aussi un **calendrier** : une ligne par salarié, avec congés, demandes en attente, absences et présents du jour. Le RH voit tout le détail ; le manager voit seulement son département et le mot « Absent ».
 Documentation : [`docs/BLOC7-CALENDRIER.md`](./docs/BLOC7-CALENDRIER.md). Plan : [`docs/BLOC7-CALENDRIER-PLAN.png`](./docs/BLOC7-CALENDRIER-PLAN.png).
-=======
-**Historique (traçabilité)** : chaque action sur une candidature ajoute une ligne, jamais modifiée, avec son auteur, sa date, l'ancien et le nouveau statut. Sont tracés : dépôt, présélection, note saisie ou corrigée, décision du test, entretien planifié ou annulé, résultat. Bouton **Historique** sur chaque carte du kanban (RH uniquement). Les candidatures antérieures ne gardent que leur dépôt, marqué « reprise des données ».
-Documentation : [`docs/bloc2-test/BLOC2-HISTORIQUE.md`](./docs/bloc2-test/BLOC2-HISTORIQUE.md). Plan : [`docs/bloc2-test/BLOC2-HISTORIQUE-PLAN.png`](./docs/bloc2-test/BLOC2-HISTORIQUE-PLAN.png).
->>>>>>> main

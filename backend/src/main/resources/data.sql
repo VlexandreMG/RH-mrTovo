@@ -117,7 +117,6 @@ INSERT INTO entretien (id, evaluation_id, date_entretien, lieu, commentaire, sta
 
 SELECT setval('entretien_id_seq', (SELECT MAX(id) FROM entretien));
 
-<<<<<<< HEAD
 -- ==========================================
 -- 7. BLOC 6 : REGIMES DE TRAVAIL
 -- ==========================================
@@ -144,7 +143,10 @@ INSERT INTO type_conge (id, code, libelle, decompte_solde, remunere, justificati
 (4, 'SANS_SOLDE', 'Congé sans solde', FALSE, FALSE, FALSE, NULL) ON CONFLICT DO NOTHING;
 
 SELECT setval('type_conge_id_seq', (SELECT MAX(id) FROM type_conge));
-=======
+
+-- ==========================================
+-- 9. BLOC 2 : REPRISE DE L'HISTORIQUE DES CANDIDATURES
+-- ==========================================
 -- Candidatures antérieures à l'historique : seul leur dépôt est connu (date de candidature).
 -- La ligne est marquée « reprise des données » ; les étapes suivantes restent inconnues.
 INSERT INTO historique_candidature (candidature_id, action, nouveau_statut_id, auteur, details, date_action)
@@ -152,7 +154,6 @@ SELECT c.id, 'CANDIDATURE_DEPOSEE', 1, 'reprise des données',
        'Candidature antérieure à l''historique : étapes suivantes non enregistrées', c.date_candidature
 FROM candidature c
 WHERE NOT EXISTS (SELECT 1 FROM historique_candidature h WHERE h.candidature_id = c.id);
->>>>>>> main
 
 -- Remet le search_path par défaut : la connexion retourne au pool et sert ensuite au Bloc 1 (schéma public).
 RESET search_path;

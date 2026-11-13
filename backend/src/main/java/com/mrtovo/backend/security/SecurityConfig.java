@@ -41,7 +41,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/public/**").permitAll()
                         .requestMatchers("/api/candidat/**").hasRole("CANDIDAT")
-<<<<<<< HEAD
                         // Bloc 5 : dossier administratif confidentiel, reserve au RH.
                         .requestMatchers("/api/bloc5/**").hasRole("RH")
                         // Bloc 6 : pointages et variables de paie, reserves au RH.
@@ -51,13 +50,11 @@ public class SecurityConfig {
                         .hasAnyRole("EMPLOYE", "RH", "MANAGER", "FINANCE", "DIRECTION")
                         .requestMatchers("/api/bloc7/rh/**").hasRole("RH")
                         .requestMatchers("/api/bloc7/**").hasAnyRole("RH", "MANAGER")
-=======
                         // Qui a fait quoi sur une candidature : information reservee au RH.
                         .requestMatchers(HttpMethod.GET, "/api/candidatures/*/historique").hasRole("RH")
                         // Bloc 2 : le QCM (bonnes réponses comprises) et les réponses d'un candidat, réservés au RH.
                         .requestMatchers("/api/offres/*/questionnaire").hasRole("RH")
                         .requestMatchers(HttpMethod.GET, "/api/candidatures/*/test").hasRole("RH")
->>>>>>> main
                         .requestMatchers("/api/**").hasAnyRole("MANAGER", "RH", "FINANCE", "DIRECTION")
                         .anyRequest().authenticated()
                 )

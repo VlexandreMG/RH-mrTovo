@@ -104,7 +104,7 @@ function formatDate(d) {
 
 onMounted(async () => {
   try {
-    offre.value = await apiGet(/public/offres/${route.params.id})
+    offre.value = await apiGet(`/public/offres/${route.params.id}`)
   } catch (e) {
     erreur.value = e.message || "Impossible de charger l'offre"
   } finally {
@@ -129,7 +129,7 @@ async function soumettre() {
     const donnees = new FormData()
     Object.entries(form).forEach(([cle, valeur]) => donnees.append(cle, valeur))
     donnees.append('cv', cv.value)
-    await apiPostMultipart(/public/offres/${route.params.id}/candidatures, donnees)
+    await apiPostMultipart(`/public/offres/${route.params.id}/candidatures`, donnees)
     message.value = 'Candidature envoyée avec succès ! Redirection...'
     setTimeout(() => router.push('/candidats/offres'), 1800)
   } catch (e) {

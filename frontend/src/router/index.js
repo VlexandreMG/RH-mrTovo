@@ -164,11 +164,8 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
-<<<<<<< HEAD
   if (auth.role === 'EMPLOYE' && !to.path.startsWith('/salarie')) return '/salarie'
-=======
   // Un candidat reste dans son portail : espace, offres et tests.
->>>>>>> main
   if (auth.role === 'CANDIDAT' && to.path !== '/candidats/espace'
       && !to.path.startsWith('/candidats/offres') && !to.path.startsWith('/candidats/tests/')) return '/candidats/espace'
   if (auth.role === 'CANDIDAT' && to.path === '/login') return '/candidats/espace'
