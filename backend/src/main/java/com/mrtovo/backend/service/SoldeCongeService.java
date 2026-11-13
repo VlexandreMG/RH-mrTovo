@@ -92,6 +92,8 @@ public class SoldeCongeService {
                 .collect(Collectors.toSet());
         return employeRepository.findAll().stream()
                 .filter(employe -> employe.getStatut() != StatutEmploye.SORTI)
+                // Les dossiers minimaux des comptes non salaries n'ont pas de solde a gerer.
+                .filter(employe -> !employe.isDossierMinimal())
                 .sorted(Comparator.comparing(EmployeEmbauche::getMatricule))
                 .map(employe -> calculer(employe, avecCompte.contains(employe.getId())))
                 .toList();

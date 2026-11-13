@@ -46,7 +46,8 @@ public class SecurityConfig {
                         // Bloc 6 : pointages et variables de paie, reserves au RH.
                         .requestMatchers("/api/bloc6/**").hasRole("RH")
                         // Bloc 7 : l'espace salarie, les ecrans du RH, puis les demandes (RH et manager de son departement).
-                        .requestMatchers("/api/salarie/**").hasRole("EMPLOYE")
+                        .requestMatchers("/api/salarie/**")
+                        .hasAnyRole("EMPLOYE", "RH", "MANAGER", "FINANCE", "DIRECTION")
                         .requestMatchers("/api/bloc7/rh/**").hasRole("RH")
                         .requestMatchers("/api/bloc7/**").hasAnyRole("RH", "MANAGER")
                         .requestMatchers("/api/**").hasAnyRole("MANAGER", "RH", "FINANCE", "DIRECTION")

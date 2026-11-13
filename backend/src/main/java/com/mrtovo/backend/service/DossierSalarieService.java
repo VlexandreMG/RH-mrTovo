@@ -111,6 +111,8 @@ public class DossierSalarieService {
     public List<DossierResumeDto> listerDossiers() {
         LocalDate aujourdhui = LocalDate.now(horloge);
         return employeRepository.findAll().stream()
+                // Les dossiers minimaux crees pour les comptes non salaries n'ont pas de dossier administratif.
+                .filter(employe -> !employe.isDossierMinimal())
                 .sorted(Comparator.comparing(EmployeEmbauche::getMatricule))
                 .map(employe -> {
                     List<DocumentSalarie> documents = documentRepository.findByEmployeIdOrderByDateDepotDesc(employe.getId());

@@ -8,5 +8,6 @@ public record SalarieProfilDto(
         String posteTitre,
         String departementNom,
         SoldeCongeDto solde,
-        List<TypeCongeDto> types) {
+        List<TypeCongeDto> types,
+        boolean soldeSuivi) {
 }

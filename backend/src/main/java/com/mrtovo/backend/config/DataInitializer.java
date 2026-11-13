@@ -81,43 +81,47 @@ public class DataInitializer {
                 }
             }
 
-            if (employeRepository.count() == 0) {
-                Departement info = departementRepository.findAll().stream()
-                        .filter(d -> d.getNom().equals("Informatique")).findFirst().orElseThrow();
-                Poste dev = posteRepository.findAll().stream()
-                        .filter(p -> p.getIntitule().equals("Développeur")).findFirst().orElseThrow();
-                List<NiveauPoste> niveaux = niveauRepository.findAllByOrderByRangAsc();
-
+            // Chaque employé est ajouté indépendamment : une base déjà peuplée reçoit les nouveaux matricules.
+            Departement info = departementRepository.findAll().stream()
+                    .filter(d -> d.getNom().equals("Informatique")).findFirst().orElse(null);
+            Poste dev = posteRepository.findAll().stream()
+                    .filter(p -> p.getIntitule().equals("Développeur")).findFirst().orElse(null);
+            List<NiveauPoste> niveaux = niveauRepository.findAllByOrderByRangAsc();
+            if (info != null && dev != null && !niveaux.isEmpty()) {
                 String[][] data = {
                         {"Rakoto Jean", "EMP-001", "0"},
                         {"Rasoa Marie", "EMP-002", "2"},
                         {"Andry Faly", "EMP-003", "1"}};
                 for (String[] row : data) {
+                    if (employeRepository.existsByMatricule(row[1])) {
+                        continue;
+                    }
                     Employe e = new Employe();
                     e.setNom(row[0]);
                     e.setMatricule(row[1]);
                     e.setPoste(dev);
                     e.setDepartement(info);
-                    e.setNiveau(niveaux.get(Integer.parseInt(row[2])));
+                    int indexNiveau = Math.min(Integer.parseInt(row[2]), niveaux.size() - 1);
+                    e.setNiveau(niveaux.get(indexNiveau));
                     e.setDateEmbauche(LocalDate.of(2022, 3, 10));
                     e.setActif(true);
                     employeRepository.save(e);
                 }
             }
 
-          if (utilisateurRepository.count() == 0) {
-    Map<String, Departement> deps = new java.util.HashMap<>();
-    departementRepository.findAll().forEach(d -> deps.put(d.getNom(), d));
+            // Chaque compte est ajouté indépendamment : la présence d'autres utilisateurs ne bloque plus.
+            Map<String, Departement> deps = new java.util.HashMap<>();
+            departementRepository.findAll().forEach(d -> deps.put(d.getNom(), d));
 
-    creerUtilisateur(utilisateurRepository, encoder, "Manager Informatique", "manager.informatique@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Informatique"));
-creerUtilisateur(utilisateurRepository, encoder, "Manager Ressources Humaines", "manager.rh@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Ressources Humaines"));
-creerUtilisateur(utilisateurRepository, encoder, "Manager Finance", "manager.finance@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Finance"));
-creerUtilisateur(utilisateurRepository, encoder, "Manager Direction", "manager.direction@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Direction"));
-creerUtilisateur(utilisateurRepository, encoder, "Manager Commercial", "manager.commercial@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Commercial"));
-    creerUtilisateur(utilisateurRepository, encoder, "Responsable RH", "rh@rh.com", "rh123", RoleUtilisateur.RH, null);
-    creerUtilisateur(utilisateurRepository, encoder, "Responsable Finance", "finance@rh.com", "finance123", RoleUtilisateur.FINANCE, null);
-    creerUtilisateur(utilisateurRepository, encoder, "Directeur Général", "direction@rh.com", "direction123", RoleUtilisateur.DIRECTION, null);
-}
+            creerUtilisateur(utilisateurRepository, encoder, "Manager Informatique", "manager.informatique@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Informatique"));
+            creerUtilisateur(utilisateurRepository, encoder, "Manager Ressources Humaines", "manager.rh@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Ressources Humaines"));
+            creerUtilisateur(utilisateurRepository, encoder, "Manager Finance", "manager.finance@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Finance"));
+            creerUtilisateur(utilisateurRepository, encoder, "Manager Direction", "manager.direction@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Direction"));
+            creerUtilisateur(utilisateurRepository, encoder, "Manager Commercial", "manager.commercial@rh.com", "manager123", RoleUtilisateur.MANAGER, deps.get("Commercial"));
+            creerUtilisateur(utilisateurRepository, encoder, "Responsable RH", "rh@rh.com", "rh123", RoleUtilisateur.RH, null);
+            creerUtilisateur(utilisateurRepository, encoder, "Responsable Finance", "finance@rh.com", "finance123", RoleUtilisateur.FINANCE, null);
+            creerUtilisateur(utilisateurRepository, encoder, "Directeur Général", "direction@rh.com", "direction123", RoleUtilisateur.DIRECTION, null);
+            creerUtilisateur(utilisateurRepository, encoder, "Employee Finance", "emp@mail.com", "emp123", RoleUtilisateur.EMPLOYE, deps.get("Finance"));
         };
     }
 
@@ -130,6 +134,9 @@ creerUtilisateur(utilisateurRepository, encoder, "Manager Commercial", "manager.
    private void creerUtilisateur(UtilisateurRepository repo, PasswordEncoder encoder,
                               String nom, String email, String mdp, RoleUtilisateur role,
                               Departement departement) {
+    if (repo.existsByEmailIgnoreCase(email)) {
+        return;
+    }
     Utilisateur u = new Utilisateur();
     u.setNom(nom);
     u.setEmail(email);

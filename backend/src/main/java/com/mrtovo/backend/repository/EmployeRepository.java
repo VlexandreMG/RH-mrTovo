@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface EmployeRepository extends JpaRepository<Employe, Long> {
     List<Employe> findByActifTrueOrderByNomAsc();
+
+    boolean existsByMatricule(String matricule);
 }

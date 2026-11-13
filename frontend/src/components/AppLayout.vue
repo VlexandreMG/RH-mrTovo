@@ -9,24 +9,36 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-const menu = computed(() => [
-  { to: '/', label: 'Tableau de bord', icon: 'dashboard', exact: true },
-  { to: '/demandes', label: 'Demandes', icon: 'list' },
-  ...(auth.role === 'MANAGER' ? [{ to: '/demandes/nouvelle', label: 'Nouvelle demande', icon: 'plus' }] : []),
-  { to: '/grille-salariale', label: 'Grille salariale', icon: 'coins' },
-  ...(auth.role === 'RH' ? [{ to: '/offres', label: 'Candidatures', icon: 'briefcase' }] : []),
-  { to: '/bloc3/dashboard', label: 'Recrutement', icon: 'briefcase' },
-  ...(auth.role === 'RH'
-    ? [
-        { to: '/bloc5/dossiers', label: 'Dossiers salariés', icon: 'users' },
-        { to: '/bloc6/temps', label: 'Temps de travail', icon: 'clock' }
-      ]
-    : []),
-  ...(['RH', 'MANAGER'].includes(auth.role) ? [{ to: '/bloc7/conges', label: 'Congés', icon: 'history' }] : [])
-])
+const menu = computed(() => {
+  if (auth.role === 'EMPLOYE') {
+    return [
+      { to: '/salarie', label: 'Mon espace', icon: 'users', exact: true },
+      { to: '/salarie/demande-conge', label: 'Demander un congé', icon: 'file' }
+    ]
+  }
+  return [
+    { to: '/', label: 'Tableau de bord', icon: 'dashboard', exact: true },
+    { to: '/demandes', label: 'Demandes', icon: 'list' },
+    ...(auth.role === 'MANAGER' ? [{ to: '/demandes/nouvelle', label: 'Nouvelle demande', icon: 'plus' }] : []),
+    { to: '/grille-salariale', label: 'Grille salariale', icon: 'coins' },
+    ...(auth.role === 'RH' ? [{ to: '/offres', label: 'Candidatures', icon: 'briefcase' }] : []),
+    { to: '/bloc3/dashboard', label: 'Recrutement', icon: 'briefcase' },
+    ...(auth.role === 'RH'
+      ? [
+          { to: '/bloc3/contrats', label: 'Contrats', icon: 'file' },
+          { to: '/bloc5/dossiers', label: 'Dossiers salariés', icon: 'users' },
+          { to: '/bloc6/temps', label: 'Temps de travail', icon: 'clock' }
+        ]
+      : []),
+    ...(['RH', 'MANAGER'].includes(auth.role) ? [{ to: '/bloc7/conges', label: 'Congés', icon: 'history' }] : []),
+    { to: '/salarie', label: 'Mon espace salarié', icon: 'users' },
+    { to: '/conges/nouvelle', label: 'Demander un congé', icon: 'file' }
+  ]
+})
 
 function isActive(m) {
   if (m.to === '/') return route.path === '/'
+  if (m.to === '/salarie') return route.path === '/salarie'
   if (m.to === '/demandes') return route.path === '/demandes' || /^\/demandes\/\d+/.test(route.path)
   return route.path.startsWith(m.to)
 }

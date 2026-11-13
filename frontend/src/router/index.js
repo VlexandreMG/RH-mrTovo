@@ -121,19 +121,28 @@ const router = createRouter({
           meta: { roles: ['RH', 'MANAGER'] }
         },
         {
+          path: 'conges/nouvelle',
+          name: 'nouvelle-demande-conge',
+          component: () => import('@/views/conges/NouvelleDemandeCongeView.vue')
+        },
+        {
           path: 'bloc3/contrats',
           name: 'bloc3-contrats',
           component: () => import('@/views/ContratsView.vue'),
           meta: { roles: ['RH'] }
+        },
+        {
+          path: 'salarie',
+          name: 'espace-salarie',
+          component: () => import('@/views/salarie/EspaceSalarieView.vue'),
+          meta: { roles: ['EMPLOYE', 'RH', 'MANAGER', 'FINANCE', 'DIRECTION'] }
+        },
+        {
+          path: 'salarie/demande-conge',
+          name: 'salarie-demande-conge',
+          component: () => import('@/views/conges/NouvelleDemandeCongeView.vue'),
+          meta: { roles: ['EMPLOYE', 'RH', 'MANAGER', 'FINANCE', 'DIRECTION'] }
         }
-      ]
-    },
-    {
-      path: '/salarie',
-      component: () => import('@/layouts/SalarieLayout.vue'),
-      meta: { requiresAuth: true, roles: ['EMPLOYE'] },
-      children: [
-        { path: '', name: 'espace-salarie', component: () => import('@/views/salarie/EspaceSalarieView.vue') }
       ]
     },
     { path: '/:pathMatch(.*)*', redirect: '/' }
